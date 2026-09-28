@@ -56,7 +56,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const activePatients = patients.filter((p) => p.status === 'active');
-  const nutritionistName = clinicProfile.nutritionistName || 'Dra. Laís Leal';
+  const nutritionistName = clinicProfile.nutritionistName || 'Raphael';
 
   // Goal Distribution for Chart
   const goalDistribution = React.useMemo(() => {

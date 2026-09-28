@@ -69,10 +69,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="min-w-0">
           <h1 className="font-extrabold text-slate-800 text-sm tracking-tight leading-tight">
-            Nutrição com Amor
+            NutriPlan Pro
           </h1>
           <p className="text-xs font-bold text-emerald-600 mt-0.5 truncate">
-            Sistema Clínico Pro
+            Gestão Nutricional
           </p>
         </div>
       </div>

@@ -197,10 +197,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
             <Heart className="w-8 h-8 fill-white/90" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-            Nutrição com Amor
+            NutriPlan Pro
           </h1>
           <p className="text-sm text-emerald-300 font-medium mt-1">
-            Plataforma Clínica & Gestão de Consultório
+            Sistema de Gestão Nutricional
           </p>
         </div>
 
@@ -602,7 +602,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
         {/* Footer info */}
         <div className="text-center mt-6 text-xs text-slate-400 flex items-center justify-center gap-2">
           <Apple className="w-4 h-4 text-emerald-400" />
-          <span>Nutrição com Amor • Suporte: {SUPPORT_EMAIL}</span>
+          <span>NutriPlan Pro • Suporte: {SUPPORT_EMAIL}</span>
         </div>
       </div>
     </div>

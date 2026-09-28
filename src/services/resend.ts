@@ -1,5 +1,5 @@
 /**
- * Resend Email Service for Nutrição com Amor
+ * Resend Email Service for NutriPlan Pro
  * Handles password recovery and clinical notification emails via Resend API.
  */
 

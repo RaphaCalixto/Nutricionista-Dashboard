@@ -21,6 +21,28 @@ import {
   INITIAL_CLINIC_PROFILE
 } from '../data/mockData';
 
+// Helper to generate RFC4122 UUID v4
+export function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0,
+      v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function isUUID(str?: string | null): boolean {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
+export function ensureUUID(str?: string | null): string {
+  if (str && isUUID(str)) return str;
+  return generateUUID();
+}
+
 // Helper to get active user ID
 export function getActiveUserId(): string {
   const user = getCurrentUser();
@@ -63,12 +85,6 @@ export async function checkSupabaseConnection(): Promise<{ connected: boolean; m
     const checkPromise = (async () => {
       const { error } = await supabase.from('patients').select('id').limit(1);
       if (error) {
-        if (error.code === '42P01' || error.message.includes('relation "public.patients" does not exist')) {
-          return {
-            connected: true,
-            message: 'Supabase conectado!'
-          };
-        }
         return { connected: false, message: `Erro Supabase: ${error.message}` };
       }
       return { connected: true, message: 'Supabase conectado e sincronizado com sucesso!' };
@@ -93,7 +109,6 @@ export async function getPatients(): Promise<Patient[]> {
     const { data, error } = await supabase
       .from('patients')
       .select('*')
-      .or(`user_id.eq.${userId},user_id.is.null`)
       .order('name');
 
     if (!error && data && data.length > 0) {
@@ -128,17 +143,20 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
   const now = new Date().toISOString();
   let savedPatient: Patient;
 
+  const validId = ensureUUID(patient.id);
+
   if (patient.id && current.some(p => p.id === patient.id)) {
     savedPatient = {
       ...(current.find(p => p.id === patient.id) as Patient),
       ...patient,
+      id: validId,
       updatedAt: now,
     } as Patient;
     const updated = current.map(p => (p.id === patient.id ? savedPatient : p));
     setLocal(storageKey, updated);
   } else {
     savedPatient = {
-      id: patient.id || `pat-${Date.now()}`,
+      id: validId,
       name: patient.name,
       email: patient.email || '',
       phone: patient.phone || '',
@@ -157,18 +175,17 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
 
   try {
     await supabase.from('patients').upsert({
-      id: savedPatient.id.startsWith('pat-') ? undefined : savedPatient.id,
-      user_id: userId,
+      id: savedPatient.id,
       name: savedPatient.name,
-      email: savedPatient.email,
-      phone: savedPatient.phone,
+      email: savedPatient.email || null,
+      phone: savedPatient.phone || null,
       birth_date: savedPatient.birthDate || null,
       gender: savedPatient.gender,
-      occupation: savedPatient.occupation,
+      occupation: savedPatient.occupation || null,
       goal: savedPatient.goal,
       status: savedPatient.status,
-      photo_url: savedPatient.photoUrl,
-      notes: savedPatient.notes,
+      photo_url: savedPatient.photoUrl || null,
+      notes: savedPatient.notes || null,
       updated_at: savedPatient.updatedAt,
     });
   } catch (e) {}
@@ -193,7 +210,7 @@ export async function getAnamnesis(patientId: string): Promise<Anamnesis | null>
   const storageKey = getUserKey('anamnesis', userId);
 
   try {
-    const { data, error } = await supabase.from('anamnesis').select('*').eq('patient_id', patientId).single();
+    const { data, error } = await supabase.from('anamnesis').select('*').eq('patient_id', patientId).maybeSingle();
     if (!error && data) {
       return {
         id: data.id,
@@ -227,7 +244,6 @@ export async function saveAnamnesis(anamnesis: Anamnesis): Promise<Anamnesis> {
   try {
     await supabase.from('anamnesis').upsert({
       patient_id: updated.patientId,
-      user_id: userId,
       main_complaint: updated.mainComplaint,
       clinical_history: updated.clinicalHistory,
       lifestyle: updated.lifestyle,
@@ -294,9 +310,10 @@ export async function addAnthropometry(entry: Anthropometry): Promise<Anthropome
   const all = getLocal<Record<string, Anthropometry[]>>(storageKey, isDemo ? INITIAL_ANTHROPOMETRY : {});
   
   const patientList = all[entry.patientId] || [];
+  const validId = ensureUUID(entry.id);
   const newEntry = {
     ...entry,
-    id: entry.id || `anthro-${Date.now()}`
+    id: validId
   };
   const exists = patientList.some((a) => a.id === newEntry.id);
   const updatedList = exists
@@ -309,7 +326,6 @@ export async function addAnthropometry(entry: Anthropometry): Promise<Anthropome
   try {
     await supabase.from('anthropometry').upsert({
       id: newEntry.id,
-      user_id: userId,
       patient_id: entry.patientId,
       date: entry.date,
       weight: entry.weight,
@@ -333,7 +349,7 @@ export async function addAnthropometry(entry: Anthropometry): Promise<Anthropome
       skinfold_thigh: entry.skinfoldThigh || null,
       skinfold_chest: entry.skinfoldChest || null,
       protocol: entry.protocol,
-      notes: entry.notes,
+      notes: entry.notes || null,
     });
   } catch (e) {}
 
@@ -398,31 +414,32 @@ export async function saveDietPlan(plan: DietPlan): Promise<DietPlan> {
   
   const patientPlans = all[plan.patientId] || [];
   const now = new Date().toISOString();
+  const validId = ensureUUID(plan.id);
   
   let savedPlan: DietPlan;
   if (patientPlans.some(p => p.id === plan.id)) {
-    savedPlan = { ...plan, updatedAt: now };
+    savedPlan = { ...plan, id: validId, updatedAt: now };
     all[plan.patientId] = patientPlans.map(p => (p.id === plan.id ? savedPlan : p));
   } else {
-    savedPlan = { ...plan, id: plan.id || `diet-${Date.now()}`, createdAt: now, updatedAt: now };
+    savedPlan = { ...plan, id: validId, createdAt: now, updatedAt: now };
     all[plan.patientId] = [savedPlan, ...patientPlans];
   }
   setLocal(storageKey, all);
 
   try {
     await supabase.from('diet_plans').upsert({
-      user_id: userId,
+      id: savedPlan.id,
       patient_id: savedPlan.patientId,
       title: savedPlan.title,
-      description: savedPlan.description,
-      target_calories: savedPlan.targetCalories,
-      target_protein: savedPlan.targetProtein,
-      target_carbs: savedPlan.targetCarbs,
-      target_fats: savedPlan.targetFats,
-      meals: savedPlan.meals,
-      guidelines: savedPlan.guidelines,
-      water_target_ml: savedPlan.waterTargetMl,
-      active: savedPlan.active,
+      description: savedPlan.description || '',
+      target_calories: savedPlan.targetCalories || 2000,
+      target_protein: savedPlan.targetProtein || 150,
+      target_carbs: savedPlan.targetCarbs || 200,
+      target_fats: savedPlan.targetFats || 60,
+      meals: savedPlan.meals || [],
+      guidelines: savedPlan.guidelines || [],
+      water_target_ml: savedPlan.waterTargetMl || 2500,
+      active: savedPlan.active !== false,
       updated_at: savedPlan.updatedAt,
     });
   } catch (e) {}
@@ -453,7 +470,6 @@ export async function getAppointments(): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
-      .or(`user_id.eq.${userId},user_id.is.null`)
       .order('date', { ascending: true });
     if (!error && data && data.length > 0) {
       const mapped: Appointment[] = data.map((a: any) => ({
@@ -486,18 +502,20 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
   const storageKey = getUserKey('appointments', userId);
   const current = getLocal<Appointment[]>(storageKey, isDemo ? INITIAL_APPOINTMENTS : []);
   const now = new Date().toISOString();
+  const validId = ensureUUID(appointment.id);
   let saved: Appointment;
 
   if (appointment.id && current.some(a => a.id === appointment.id)) {
     saved = {
       ...(current.find(a => a.id === appointment.id) as Appointment),
       ...appointment,
+      id: validId,
     } as Appointment;
     const updated = current.map(a => (a.id === appointment.id ? saved : a));
     setLocal(storageKey, updated);
   } else {
     saved = {
-      id: appointment.id || `apt-${Date.now()}`,
+      id: validId,
       patientId: appointment.patientId || '',
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone || '',
@@ -517,10 +535,10 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
 
   try {
     await supabase.from('appointments').upsert({
-      user_id: userId,
-      patient_id: saved.patientId || null,
+      id: saved.id,
+      patient_id: isUUID(saved.patientId) ? saved.patientId : null,
       patient_name: saved.patientName,
-      patient_phone: saved.patientPhone,
+      patient_phone: saved.patientPhone || null,
       date: saved.date,
       time: saved.time,
       duration_minutes: saved.durationMinutes,
@@ -528,8 +546,8 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
       status: saved.status,
       price: saved.price,
       paid: saved.paid,
-      notes: saved.notes,
-      meet_url: saved.meetUrl,
+      notes: saved.notes || null,
+      meet_url: saved.meetUrl || null,
     });
   } catch (e) {}
 
@@ -580,26 +598,27 @@ export async function saveSupplement(supplement: Supplement): Promise<Supplement
   
   const patientList = all[supplement.patientId] || [];
   const now = new Date().toISOString();
+  const validId = ensureUUID(supplement.id);
   let saved: Supplement;
 
   if (patientList.some(s => s.id === supplement.id)) {
-    saved = supplement;
+    saved = { ...supplement, id: validId };
     all[supplement.patientId] = patientList.map(s => (s.id === supplement.id ? saved : s));
   } else {
-    saved = { ...supplement, id: supplement.id || `sup-${Date.now()}`, createdAt: now };
+    saved = { ...supplement, id: validId, createdAt: now };
     all[supplement.patientId] = [...patientList, saved];
   }
   setLocal(storageKey, all);
 
   try {
     await supabase.from('supplements').upsert({
-      user_id: userId,
+      id: saved.id,
       patient_id: saved.patientId,
       name: saved.name,
       dosage: saved.dosage,
       timing: saved.timing,
-      instructions: saved.instructions,
-      active: saved.active,
+      instructions: saved.instructions || null,
+      active: saved.active !== false,
     });
   } catch (e) {}
 
@@ -619,32 +638,11 @@ export async function deleteSupplement(patientId: string, id: string): Promise<v
   } catch (e) {}
 }
 
-// ==================== EVOLUTION PHOTOS (ANTES / DEPOIS) API ====================
+// ==================== EVOLUTION PHOTOS API ====================
 export async function getEvolutionPhotos(patientId: string): Promise<EvolutionPhoto[]> {
   const userId = getActiveUserId();
   const isDemo = userId === DEMO_USER.id;
   const storageKey = getUserKey('photos', userId);
-
-  try {
-    const { data, error } = await supabase
-      .from('evolution_photos')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('date', { ascending: true });
-    if (!error && data && data.length > 0) {
-      return data.map((p: any) => ({
-        id: p.id,
-        patientId: p.patient_id,
-        date: p.date,
-        angle: p.angle || 'front',
-        photoUrl: p.photo_url,
-        weight: p.weight ? Number(p.weight) : undefined,
-        notes: p.notes || '',
-        createdAt: p.created_at,
-      }));
-    }
-  } catch (e) {}
-
   const all = getLocal<Record<string, EvolutionPhoto[]>>(storageKey, isDemo ? INITIAL_EVOLUTION_PHOTOS : {});
   return all[patientId] || [];
 }
@@ -667,19 +665,6 @@ export async function saveEvolutionPhoto(photo: EvolutionPhoto): Promise<Evoluti
     all[photo.patientId] = [...patientList, saved].sort((a, b) => a.date.localeCompare(b.date));
   }
   setLocal(storageKey, all);
-
-  try {
-    await supabase.from('evolution_photos').upsert({
-      user_id: userId,
-      patient_id: saved.patientId,
-      date: saved.date,
-      angle: saved.angle,
-      photo_url: saved.photoUrl,
-      weight: saved.weight || null,
-      notes: saved.notes || null,
-    });
-  } catch (e) {}
-
   return saved;
 }
 
@@ -691,9 +676,6 @@ export async function deleteEvolutionPhoto(patientId: string, id: string): Promi
     all[patientId] = all[patientId].filter(p => p.id !== id);
     setLocal(storageKey, all);
   }
-  try {
-    await supabase.from('evolution_photos').delete().eq('id', id);
-  } catch (e) {}
 }
 
 // ==================== CLINIC PROFILE API ====================
@@ -704,10 +686,10 @@ export function getClinicProfile(): ClinicProfile {
   const storageKey = getUserKey('clinic', userId);
 
   const defaultNewProfile: ClinicProfile = {
-    nutritionistName: user?.name || 'Nutricionista',
+    nutritionistName: user?.name || 'Raphael',
     crn: '',
-    clinicName: '',
-    email: user?.email || '',
+    clinicName: 'NutriPlan Pro',
+    email: user?.email || 'raphacalixto10@gmail.com',
     phone: '',
     address: '',
     instagram: '',

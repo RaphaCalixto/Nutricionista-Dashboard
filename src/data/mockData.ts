@@ -1,11 +1,11 @@
 import type { Patient, Anamnesis, Anthropometry, DietPlan, Appointment, Supplement, EvolutionPhoto, ClinicProfile } from '../types';
 
 export const INITIAL_CLINIC_PROFILE: ClinicProfile = {
-  nutritionistName: 'Dra. Laís Leal',
-  crn: 'CRN-3 71644',
-  clinicName: '',
-  email: '',
-  phone: '(11) 91790-8668',
+  nutritionistName: 'Raphael',
+  crn: '',
+  clinicName: 'NutriPlan Pro',
+  email: 'raphacalixto10@gmail.com',
+  phone: '',
   address: '',
   instagram: ''
 };

@@ -13,10 +13,10 @@ interface PasswordResetToken {
 }
 
 export const DEMO_USER: User = {
-  id: 'user-lais-leal-default',
-  name: 'Dra. Laís Leal',
-  email: 'lais.leal@nutriplan.com',
-  password: '123456',
+  id: 'user-raphael-admin',
+  name: 'Raphael',
+  email: 'raphacalixto10@gmail.com',
+  password: '',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -25,12 +25,12 @@ function initializeUsers(): User[] {
   try {
     const raw = localStorage.getItem(USERS_STORAGE_KEY);
     if (raw) {
-      const users: User[] = JSON.parse(raw);
-      // Ensure demo user is present
+      let users: User[] = JSON.parse(raw);
+      // Ensure Raphael user is present
       if (!users.some((u) => u.email.toLowerCase() === DEMO_USER.email.toLowerCase())) {
-        users.push(DEMO_USER);
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        users.unshift(DEMO_USER);
       }
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
       return users;
     }
   } catch (e) {}
@@ -73,13 +73,22 @@ export async function loginUser(
     return { success: false, error: 'Por favor, preencha o e-mail e a senha.' };
   }
 
-  // 1. Check local registered users / demo user
+  // 1. Check local registered users / admin user
   const users = getAllUsers();
   const foundUser = users.find(
-    (u) => u.email.toLowerCase() === cleanEmail && (u.password === cleanPassword || !u.password)
+    (u) =>
+      u.email.toLowerCase() === cleanEmail &&
+      (u.password === cleanPassword || (!u.password && cleanEmail === DEMO_USER.email.toLowerCase()))
   );
 
   if (foundUser) {
+    // If admin logged in without preset password, save this password for future
+    if (!foundUser.password && cleanPassword) {
+      foundUser.password = cleanPassword;
+      DEMO_USER.password = cleanPassword;
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    }
+
     // Exclude raw password from session
     const safeUser: User = {
       id: foundUser.id,
@@ -208,13 +217,19 @@ export async function requestPasswordReset(
   }
 
   const users = getAllUsers();
-  const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+  let user = users.find((u) => u.email.toLowerCase() === cleanEmail);
 
+  // If user is not yet in the local list, register or recognize them dynamically
   if (!user) {
-    return {
-      success: false,
-      error: 'Não encontramos nenhuma conta cadastrada com este e-mail no sistema.',
+    const defaultName = cleanEmail === 'raphacalixto10@gmail.com' ? 'Raphael' : cleanEmail.split('@')[0];
+    user = {
+      id: `user-${Date.now()}`,
+      name: defaultName,
+      email: cleanEmail,
+      createdAt: new Date().toISOString(),
     };
+    users.push(user);
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
   }
 
   // Generate 6-digit verification code
@@ -300,19 +315,38 @@ export async function verifyAndResetPassword(
 
   // Update user's password
   const users = getAllUsers();
-  const userIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  let userIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
 
+  let updatedUser: User;
   if (userIndex === -1) {
-    return { success: false, error: 'Usuário não encontrado.' };
+    updatedUser = {
+      id: `user-${Date.now()}`,
+      name: cleanEmail === 'raphacalixto10@gmail.com' ? 'Raphael' : cleanEmail.split('@')[0],
+      email: cleanEmail,
+      password: cleanPassword,
+      createdAt: new Date().toISOString(),
+    };
+    users.push(updatedUser);
+  } else {
+    users[userIndex].password = cleanPassword;
+    updatedUser = users[userIndex];
   }
 
-  users[userIndex].password = cleanPassword;
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
 
-  // If this is the demo account, also update demo password in memory
+  // If this is the admin account, also update demo password in memory
   if (cleanEmail === DEMO_USER.email.toLowerCase()) {
     DEMO_USER.password = cleanPassword;
   }
+
+  // Set active session automatically after reset
+  const safeUser: User = {
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    createdAt: updatedUser.createdAt,
+  };
+  setCurrentSession(safeUser);
 
   // Clean up used token
   const remainingResets = resets.filter((r) => r.email.toLowerCase() !== cleanEmail);
