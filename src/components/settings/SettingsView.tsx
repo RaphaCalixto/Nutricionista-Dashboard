@@ -7,14 +7,12 @@ import {
   Building,
   User as UserIcon,
   ShieldCheck,
-  Mail,
   Smartphone,
   Sparkles,
   RefreshCw,
   LogOut
 } from 'lucide-react';
 import type { ClinicProfile, User } from '../../types';
-import { getResendApiKey, setResendApiKey, SUPPORT_EMAIL } from '../../services/resend';
 import { usePWAInstall } from '../../services/pwa';
 
 interface SettingsViewProps {
@@ -44,16 +42,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [instagram, setInstagram] = useState(clinicProfile.instagram || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
-
-  // Resend API Key state
-  const [resendKey, setResendKey] = useState(getResendApiKey());
-  const [resendSaved, setResendSaved] = useState(false);
-
-  const handleSaveResendKey = () => {
-    setResendApiKey(resendKey);
-    setResendSaved(true);
-    setTimeout(() => setResendSaved(false), 3000);
-  };
 
   useEffect(() => {
     setNutritionistName(clinicProfile.nutritionistName || currentUser?.name || 'Nutricionista');
@@ -267,60 +255,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
         </div>
       </form>
-
-      {/* Resend Email Configuration Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-              <Mail className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">Serviço de E-mail Resend (Recuperação de Senha)</h3>
-              <p className="text-[11px] text-slate-500">
-                E-mail de suporte configurado: <strong className="text-emerald-700">{SUPPORT_EMAIL}</strong>
-              </p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-            Resend API
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              Chave de API do Resend (API Key)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={resendKey}
-                onChange={(e) => setResendKey(e.target.value)}
-                placeholder="re_123456789..."
-                className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={handleSaveResendKey}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Salvar Chave</span>
-              </button>
-            </div>
-            {resendSaved && (
-              <p className="text-xs text-emerald-600 font-bold mt-1.5 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Chave do Resend atualizada com sucesso!</span>
-              </p>
-            )}
-            <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-              Obtenha sua chave gratuita em <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-emerald-600 underline font-semibold">resend.com/api-keys</a>. Se não preenchida, o sistema simula o código na tela para testes em ambiente de desenvolvimento.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* PWA App Installation & Auto-Update Card */}
       <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-4 border border-emerald-500/20">
