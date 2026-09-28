@@ -32,6 +32,7 @@ import type {
   User
 } from './types';
 
+import { supabase } from './services/supabase';
 import {
   getCurrentUser,
   setCurrentSession,
@@ -70,6 +71,43 @@ export function App() {
 
   // Local Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(getCurrentUser());
+
+  // Sync Supabase Google OAuth session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const email = session.user.email || 'raphacalixto10@gmail.com';
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+        const userObj: User = {
+          id: session.user.id,
+          name,
+          email,
+          createdAt: session.user.created_at || new Date().toISOString(),
+        };
+        setCurrentUser(userObj);
+        setCurrentSession(userObj);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const email = session.user.email || 'raphacalixto10@gmail.com';
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+        const userObj: User = {
+          id: session.user.id,
+          name,
+          email,
+          createdAt: session.user.created_at || new Date().toISOString(),
+        };
+        setCurrentUser(userObj);
+        setCurrentSession(userObj);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Sync Clerk authenticated user into local state
   useEffect(() => {

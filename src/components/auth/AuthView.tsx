@@ -26,6 +26,7 @@ import {
   requestPasswordReset,
   verifyAndResetPassword
 } from '../../services/auth';
+import { supabase } from '../../services/supabase';
 import { SUPPORT_EMAIL } from '../../services/resend';
 import { usePWAInstall } from '../../services/pwa';
 import { InstallAppModal } from '../modals/InstallAppModal';
@@ -72,81 +73,36 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     setLoading(true);
 
     try {
+      // 1. Try Supabase Google OAuth provider
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (!error && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      // 2. Try Clerk client redirect
       const c = clerk as any;
-      const ssoCallbackUrl = `${window.location.origin}/sso-callback`;
-
-      // 1. Try Direct OAuth Redirect via Clerk client (sign up)
-      if (mode === 'register' && c?.client?.signUp?.authenticateWithRedirect) {
-        await c.client.signUp.authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: ssoCallbackUrl,
-          redirectUrlComplete: '/',
-        });
-        return;
-      }
-
-      // 2. Try Direct OAuth Redirect via Clerk client (sign in)
-      if (c?.client?.signIn?.authenticateWithRedirect) {
-        await c.client.signIn.authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: ssoCallbackUrl,
-          redirectUrlComplete: '/',
-        });
-        return;
-      }
-
-      // 3. Try authenticateWithRedirect on clerk directly
-      if (typeof c?.authenticateWithRedirect === 'function') {
-        await c.authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: ssoCallbackUrl,
-          redirectUrlComplete: '/',
-        });
-        return;
-      }
-
-      // 4. Try openSignUp / openSignIn modals
-      if (mode === 'register' && typeof c?.openSignUp === 'function') {
-        c.openSignUp({
-          fallbackRedirectUrl: '/',
-          signInFallbackRedirectUrl: '/',
-        });
-        return;
-      }
-
-      if (typeof c?.openSignIn === 'function') {
-        c.openSignIn({
-          fallbackRedirectUrl: '/',
-          signUpFallbackRedirectUrl: '/',
-        });
-        return;
-      }
-
-      // 5. Try redirectToSignIn / redirectToSignUp
-      if (typeof c?.redirectToSignIn === 'function') {
+      if (c && typeof c.redirectToSignIn === 'function') {
         await c.redirectToSignIn({
           signInFallbackRedirectUrl: '/',
           signUpFallbackRedirectUrl: '/',
         });
         return;
       }
+
+      if (c && typeof c.openSignIn === 'function') {
+        c.openSignIn();
+        return;
+      }
     } catch (err: any) {
       console.error('[Google Auth Error]', err);
-      // If user already exists on sign up, try sign in redirect
-      if (err?.errors?.[0]?.code === 'form_identifier_exists' || err?.message?.includes('already exists')) {
-        try {
-          const c = clerk as any;
-          if (c?.client?.signIn?.authenticateWithRedirect) {
-            await c.client.signIn.authenticateWithRedirect({
-              strategy: 'oauth_google',
-              redirectUrl: `${window.location.origin}/sso-callback`,
-              redirectUrlComplete: '/',
-            });
-            return;
-          }
-        } catch (e2) {}
-      }
-      setErrorMessage(err?.errors?.[0]?.message || err.message || 'Erro ao conectar com a conta Google.');
+      setErrorMessage(err?.message || 'Erro ao conectar com a conta Google.');
     } finally {
       setLoading(false);
     }
