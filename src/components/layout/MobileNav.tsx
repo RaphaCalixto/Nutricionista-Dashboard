@@ -13,8 +13,11 @@ import {
   ChevronRight,
   User as UserIcon,
   ShieldCheck,
-  Heart
+  Heart,
+  Download,
+  Smartphone
 } from 'lucide-react';
+import { usePWAInstall } from '../../services/pwa';
 import type { NavTab } from './Sidebar';
 import type { ClinicProfile, User } from '../../types';
 
@@ -38,6 +41,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onNewAppointment,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
 
   const menuItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string; desc: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, desc: 'Visão geral da clínica e métricas' },
@@ -241,6 +245,29 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 );
               })}
             </div>
+
+            {/* PWA Install Button (Mobile / Tablet) */}
+            {(!isInstalled && (isInstallable || isIOS)) && (
+              <div className="p-3 bg-emerald-50/80 border-t border-emerald-100/70">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isInstallable) {
+                      installPWA();
+                    } else if (isIOS) {
+                      alert('Para instalar no iPhone/iPad: Toque no botão de Compartilhar (ícone com seta para cima) no Safari e escolha "Adicionar à Tela de Início".');
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Download className="w-4 h-4" />
+                    <span>Baixar / Instalar Aplicativo</span>
+                  </div>
+                  <Smartphone className="w-4 h-4 opacity-80" />
+                </button>
+              </div>
+            )}
 
             {/* Profile & Logout Section */}
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">

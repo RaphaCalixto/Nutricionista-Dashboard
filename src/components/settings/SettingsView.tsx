@@ -6,12 +6,16 @@ import {
   Download,
   Building,
   User as UserIcon,
-  LogOut,
   ShieldCheck,
-  Mail
+  Mail,
+  Smartphone,
+  Sparkles,
+  RefreshCw,
+  LogOut
 } from 'lucide-react';
 import type { ClinicProfile, User } from '../../types';
 import { getResendApiKey, setResendApiKey, SUPPORT_EMAIL } from '../../services/resend';
+import { usePWAInstall } from '../../services/pwa';
 
 interface SettingsViewProps {
   clinicProfile: ClinicProfile;
@@ -39,6 +43,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [address, setAddress] = useState(clinicProfile.address || '');
   const [instagram, setInstagram] = useState(clinicProfile.instagram || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
 
   // Resend API Key state
   const [resendKey, setResendKey] = useState(getResendApiKey());
@@ -315,6 +320,65 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* PWA App Installation & Auto-Update Card */}
+      <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-4 border border-emerald-500/20">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <span>Aplicativo Instalável (PWA)</span>
+                {isInstalled && (
+                  <span className="text-[10px] bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-400/30">
+                    Instalado
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-emerald-200/80">
+                NutriPlan Pro no Celular, Tablet e Computador
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" style={{ animationDuration: '6s' }} />
+            <span>Auto-atualização ativa</span>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
+          <p>
+            • <strong className="text-white">Atualização 100% Automática:</strong> Sempre que novas melhorias ou correções forem publicadas, o aplicativo se atualiza em segundo plano sem que você precise desinstalar e reinstalar.
+          </p>
+          <p>
+            • <strong className="text-white">Acesso Rápido:</strong> Abra como um aplicativo nativo na tela inicial do seu celular, tablet ou na barra de tarefas do computador.
+          </p>
+        </div>
+
+        {!isInstalled && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (isInstallable) {
+                  installPWA();
+                } else if (isIOS) {
+                  alert('No iPhone/iPad (Safari): Toque no botão de Compartilhar (ícone com seta para cima) e selecione "Adicionar à Tela de Início".');
+                } else {
+                  alert('Para instalar no Google Chrome ou Edge, clique no ícone de download/instalar na barra de endereços do navegador.');
+                }
+              }}
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Instalar NutriPlan Pro no Dispositivo</span>
+              <Sparkles className="w-3.5 h-3.5 opacity-90" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Backup Section */}

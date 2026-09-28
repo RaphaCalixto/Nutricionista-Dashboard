@@ -9,8 +9,11 @@ import {
   Settings,
   Heart,
   ChevronRight,
-  LogOut
+  LogOut,
+  Download,
+  Sparkles
 } from 'lucide-react';
+import { usePWAInstall } from '../../services/pwa';
 import type { ClinicProfile, User } from '../../types';
 
 export type NavTab = 
@@ -39,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   onLogout,
 }) => {
+  const { isInstallable, installPWA } = usePWAInstall();
   const menuItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'patients', label: 'Pacientes & Prontuários', icon: <Users className="w-5 h-5" /> },
@@ -111,6 +115,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
+
+        {/* PWA Install Card */}
+        {isInstallable && (
+          <div className="pt-2 px-1">
+            <button
+              onClick={installPWA}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                <span>Instalar Aplicativo</span>
+              </div>
+              <Sparkles className="w-3.5 h-3.5 opacity-80" />
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* User Mini Profile & Logout */}
