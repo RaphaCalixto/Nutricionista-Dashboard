@@ -16,7 +16,9 @@ import {
   KeyRound,
   ArrowLeft,
   RotateCcw,
-  Check
+  Check,
+  Download,
+  Smartphone
 } from 'lucide-react';
 import {
   loginUser,
@@ -25,6 +27,8 @@ import {
   verifyAndResetPassword
 } from '../../services/auth';
 import { SUPPORT_EMAIL } from '../../services/resend';
+import { usePWAInstall } from '../../services/pwa';
+import { InstallAppModal } from '../modals/InstallAppModal';
 import type { User } from '../../types';
 
 interface AuthViewProps {
@@ -35,6 +39,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
   const clerk = useClerk();
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const { isInstallable, installPWA, isInstalled } = usePWAInstall();
   
   // Login form states
   const [loginEmail, setLoginEmail] = useState('');
@@ -714,6 +720,46 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
             </div>
           )}
         </div>
+
+        {/* Download / PWA Section for new & returning users */}
+        {!isInstalled && (
+          <div className="mt-4 bg-white/95 backdrop-blur-md rounded-2xl border border-emerald-100 p-4 shadow-sm text-left">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-slate-800 truncate">Baixar Aplicativo no Dispositivo (PWA)</h4>
+                  <p className="text-[11px] text-slate-500 truncate">Acesso rápido e direto pelo celular ou computador</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (isInstallable) {
+                    const ok = await installPWA();
+                    if (!ok) setIsInstallModalOpen(true);
+                  } else {
+                    setIsInstallModalOpen(true);
+                  }
+                }}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Baixar App</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2.5 border-t border-slate-100 pt-2 leading-relaxed">
+              💡 <strong>Dica:</strong> Se não quiser baixar agora, você sempre poderá instalar depois acessando a aba <strong>Configurações</strong> do sistema.
+            </p>
+          </div>
+        )}
+
+        <InstallAppModal
+          isOpen={isInstallModalOpen}
+          onClose={() => setIsInstallModalOpen(false)}
+        />
 
         {/* Footer info */}
         <div className="text-center mt-6 text-xs text-slate-400 flex items-center justify-center gap-2">

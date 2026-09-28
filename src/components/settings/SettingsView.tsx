@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { ClinicProfile, User } from '../../types';
 import { usePWAInstall } from '../../services/pwa';
+import { InstallAppModal } from '../modals/InstallAppModal';
 
 interface SettingsViewProps {
   clinicProfile: ClinicProfile;
@@ -41,6 +42,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [address, setAddress] = useState(clinicProfile.address || '');
   const [instagram, setInstagram] = useState(clinicProfile.instagram || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
 
   useEffect(() => {
@@ -296,13 +298,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (isInstallable) {
-                  installPWA();
-                } else if (isIOS) {
-                  alert('No iPhone/iPad (Safari): Toque no botão de Compartilhar (ícone com seta para cima) e selecione "Adicionar à Tela de Início".');
+                  const ok = await installPWA();
+                  if (!ok) setIsInstallModalOpen(true);
                 } else {
-                  alert('Para instalar no Google Chrome ou Edge, clique no ícone de download/instalar na barra de endereços do navegador.');
+                  setIsInstallModalOpen(true);
                 }
               }}
               className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
@@ -314,6 +315,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         )}
       </div>
+
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
 
       {/* Backup Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-3">

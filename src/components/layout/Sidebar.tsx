@@ -14,6 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { usePWAInstall } from '../../services/pwa';
+import { InstallAppModal } from '../modals/InstallAppModal';
 import type { ClinicProfile, User } from '../../types';
 
 export type NavTab = 
@@ -42,7 +43,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   onLogout,
 }) => {
-  const { isInstallable, installPWA } = usePWAInstall();
+  const { isInstallable, installPWA, isInstalled } = usePWAInstall();
+  const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const menuItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'patients', label: 'Pacientes & Prontuários', icon: <Users className="w-5 h-5" /> },
@@ -117,10 +119,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
 
         {/* PWA Install Card */}
-        {isInstallable && (
+        {!isInstalled && (
           <div className="pt-2 px-1">
             <button
-              onClick={installPWA}
+              onClick={async () => {
+                if (isInstallable) {
+                  const ok = await installPWA();
+                  if (!ok) setIsInstallModalOpen(true);
+                } else {
+                  setIsInstallModalOpen(true);
+                }
+              }}
               className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -132,6 +141,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </nav>
+
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
 
       {/* User Mini Profile & Logout */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2">

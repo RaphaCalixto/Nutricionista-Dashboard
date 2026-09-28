@@ -18,6 +18,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { usePWAInstall } from '../../services/pwa';
+import { InstallAppModal } from '../modals/InstallAppModal';
 import type { NavTab } from './Sidebar';
 import type { ClinicProfile, User } from '../../types';
 
@@ -41,6 +42,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onNewAppointment,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
 
   const menuItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string; desc: string }[] = [
@@ -247,15 +249,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             </div>
 
             {/* PWA Install Button (Mobile / Tablet) */}
-            {(!isInstalled && (isInstallable || isIOS)) && (
+            {!isInstalled && (
               <div className="p-3 bg-emerald-50/80 border-t border-emerald-100/70">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (isInstallable) {
-                      installPWA();
-                    } else if (isIOS) {
-                      alert('Para instalar no iPhone/iPad: Toque no botão de Compartilhar (ícone com seta para cima) no Safari e escolha "Adicionar à Tela de Início".');
+                      const ok = await installPWA();
+                      if (!ok) setIsInstallModalOpen(true);
+                    } else {
+                      setIsInstallModalOpen(true);
                     }
                   }}
                   className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
@@ -297,6 +300,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           </div>
         </div>
       )}
+
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
     </>
   );
 };
