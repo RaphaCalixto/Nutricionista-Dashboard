@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useUser, useClerk, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { Sidebar } from './components/layout/Sidebar';
 import type { NavTab } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
@@ -33,6 +34,7 @@ import type {
 
 import {
   getCurrentUser,
+  setCurrentSession,
   logoutUser
 } from './services/auth';
 
@@ -62,8 +64,39 @@ import {
 } from './services/db';
 
 export function App() {
-  // Auth state
+  // Clerk Authentication
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+
+  // Local Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(getCurrentUser());
+
+  // Sync Clerk authenticated user into local state
+  useEffect(() => {
+    if (isClerkLoaded && isClerkSignedIn && clerkUser) {
+      const email =
+        clerkUser.primaryEmailAddress?.emailAddress ||
+        clerkUser.emailAddresses?.[0]?.emailAddress ||
+        'raphacalixto10@gmail.com';
+      const name =
+        clerkUser.fullName ||
+        clerkUser.firstName ||
+        (email ? email.split('@')[0] : 'Raphael');
+
+      const userObj: User = {
+        id: clerkUser.id,
+        name,
+        email,
+        createdAt: clerkUser.createdAt ? new Date(clerkUser.createdAt).toISOString() : new Date().toISOString(),
+      };
+
+      setCurrentUser((prev) => {
+        if (prev?.id === userObj.id) return prev;
+        return userObj;
+      });
+      setCurrentSession(userObj);
+    }
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser]);
 
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [supabaseConnected, setSupabaseConnected] = useState<boolean>(true);
@@ -142,15 +175,6 @@ export function App() {
       loadPatientDetails();
     }
   }, [selectedPatient]);
-
-  // Logout handler
-  const handleLogout = () => {
-    logoutUser();
-    setCurrentUser(null);
-    setSelectedPatient(null);
-    setDietPlanToPrint(null);
-    setCurrentTab('dashboard');
-  };
 
   // Handle Tab Selection
   const handleSelectTab = (tab: NavTab) => {
@@ -302,6 +326,27 @@ export function App() {
     const res = await checkSupabaseConnection();
     setSupabaseConnected(res.connected);
   };
+
+  const handleLogout = async () => {
+    logoutUser();
+    setCurrentUser(null);
+    try {
+      if (clerkSignOut) {
+        await clerkSignOut();
+      }
+    } catch (e) {}
+  };
+
+  // If in SSO callback from Google / Clerk redirect
+  if (typeof window !== 'undefined' && window.location.pathname === '/sso-callback') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white gap-4">
+        <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-slate-300">Autenticando com Google...</p>
+        <AuthenticateWithRedirectCallback signInForceRedirectUrl="/" signUpForceRedirectUrl="/" />
+      </div>
+    );
+  }
 
   // If not logged in, show Auth View
   if (!currentUser) {
