@@ -73,36 +73,68 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     setLoading(true);
 
     try {
-      // 1. Try Supabase Google OAuth provider
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
+      const c = clerk as any;
+      const callbackUrl = `${window.location.origin}/sso-callback`;
 
-      if (!error && data?.url) {
-        window.location.href = data.url;
+      // 1. Direct OAuth redirect if client is ready
+      if (mode === 'register' && c?.client?.signUp?.authenticateWithRedirect) {
+        await c.client.signUp.authenticateWithRedirect({
+          strategy: 'oauth_google',
+          redirectUrl: callbackUrl,
+          redirectUrlComplete: '/',
+        });
         return;
       }
 
-      // 2. Try Clerk client redirect
-      const c = clerk as any;
-      if (c && typeof c.redirectToSignIn === 'function') {
+      if (c?.client?.signIn?.authenticateWithRedirect) {
+        await c.client.signIn.authenticateWithRedirect({
+          strategy: 'oauth_google',
+          redirectUrl: callbackUrl,
+          redirectUrlComplete: '/',
+        });
+        return;
+      }
+
+      // 2. Open Clerk Sign In / Sign Up Modal
+      if (mode === 'register' && typeof c?.openSignUp === 'function') {
+        c.openSignUp({
+          fallbackRedirectUrl: '/',
+          signInFallbackRedirectUrl: '/',
+        });
+        return;
+      }
+
+      if (typeof c?.openSignIn === 'function') {
+        c.openSignIn({
+          fallbackRedirectUrl: '/',
+          signUpFallbackRedirectUrl: '/',
+        });
+        return;
+      }
+
+      // 3. Redirect to Clerk Sign In
+      if (typeof c?.redirectToSignIn === 'function') {
         await c.redirectToSignIn({
           signInFallbackRedirectUrl: '/',
           signUpFallbackRedirectUrl: '/',
         });
         return;
       }
-
-      if (c && typeof c.openSignIn === 'function') {
-        c.openSignIn();
-        return;
-      }
     } catch (err: any) {
       console.error('[Google Auth Error]', err);
-      setErrorMessage(err?.message || 'Erro ao conectar com a conta Google.');
+      // Fallback to open modal on error
+      try {
+        const c = clerk as any;
+        if (mode === 'register' && c?.openSignUp) {
+          c.openSignUp();
+          return;
+        }
+        if (c?.openSignIn) {
+          c.openSignIn();
+          return;
+        }
+      } catch (e2) {}
+      setErrorMessage(err?.errors?.[0]?.message || err?.message || 'Erro ao conectar com a conta Google.');
     } finally {
       setLoading(false);
     }
