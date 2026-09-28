@@ -104,7 +104,7 @@ export const PatientListView: React.FC<PatientListViewProps> = ({
           </div>
 
           {/* Status filter */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
               onClick={() => setSelectedStatus('all')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
@@ -139,8 +139,8 @@ export const PatientListView: React.FC<PatientListViewProps> = ({
         </div>
 
         {/* Goal Filters Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 text-xs">
-          <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1 mr-1">
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+          <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1 mr-1 shrink-0">
             <Filter className="w-3 h-3" /> Objetivo:
           </span>
           <button
@@ -157,7 +157,7 @@ export const PatientListView: React.FC<PatientListViewProps> = ({
             <button
               key={key}
               onClick={() => setSelectedGoal(key)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                 selectedGoal === key
                   ? 'bg-emerald-600 text-white font-bold shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'

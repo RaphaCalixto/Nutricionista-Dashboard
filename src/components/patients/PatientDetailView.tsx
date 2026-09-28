@@ -217,7 +217,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         </div>
 
         {/* Tab Navigation including Antes & Depois */}
-        <div className="flex items-center gap-2 overflow-x-auto border-t border-slate-100 mt-6 pt-4 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-t border-slate-100 mt-6 pt-4 text-xs font-semibold">
           {[
             { id: 'overview', label: 'Visão Geral', icon: <User className="w-4 h-4" /> },
             { id: 'anamnesis', label: 'Anamnese Clínica', icon: <FileText className="w-4 h-4" /> },
@@ -252,10 +252,10 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabKey)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all cursor-pointer text-xs ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
                 }`}
               >
                 {tab.icon}
