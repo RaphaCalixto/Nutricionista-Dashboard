@@ -529,15 +529,6 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
               <span>Imprimir / PDF</span>
             </button>
           )}
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] rounded-xl shadow-sm shadow-emerald-600/20 transition-all"
-          >
-            <Save className="w-4 h-4" />
-            <span>{saving ? 'Salvando...' : savedSuccess ? 'Plano Salvo!' : 'Salvar Plano Alimentar'}</span>
-          </button>
         </div>
       </div>
 
@@ -858,32 +849,37 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
         })}
       </div>
 
-      {/* General Guidelines & Water Goal */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 className="font-bold text-slate-800 text-sm">
-            Orientações Gerais & Condutas Nutricionais
-          </h3>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Meta Hídrica Diária:</span>
-            <input
-              type="number"
-              step={100}
-              value={waterTargetMl}
-              onChange={(e) => setWaterTargetMl(Number(e.target.value))}
-              className="w-24 px-2.5 py-1 font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg focus:outline-none"
-            />
-            <span className="text-slate-400 font-bold">ml</span>
-          </div>
+      {/* Bottom Save Action Bar (Last Element on Page) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h4 className="text-sm font-bold text-slate-800">
+            Finalizar e Salvar Cardápio
+          </h4>
+          <p className="text-xs text-slate-500">
+            {currentPatient
+              ? `Todos os cálculos e refeições serão vinculados ao prontuário de ${currentPatient.name}.`
+              : 'Selecione um paciente para salvar este plano.'}
+          </p>
         </div>
 
-        <textarea
-          rows={4}
-          value={guidelinesText}
-          onChange={(e) => setGuidelinesText(e.target.value)}
-          placeholder="Insira as recomendações gerais para o paciente (uma por linha)..."
-          className="w-full p-3 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 leading-relaxed"
-        />
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          {savedSuccess && (
+            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Plano salvo com sucesso!</span>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !currentPatient}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3 text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            <span>{saving ? 'Salvando...' : savedSuccess ? 'Plano Salvo!' : 'Salvar Plano Alimentar'}</span>
+          </button>
+        </div>
       </div>
 
       {/* FOOD SEARCH & ADD MODAL */}
