@@ -407,7 +407,7 @@ export function App() {
             <DashboardView
               patients={patients}
               appointments={appointments}
-              dietPlansCount={Object.values(patientDietPlans).length || 4}
+              dietPlansCount={patientDietPlans.length || 0}
               clinicProfile={clinicProfile}
               onNavigate={handleSelectTab}
               onSelectPatient={(p) => {
