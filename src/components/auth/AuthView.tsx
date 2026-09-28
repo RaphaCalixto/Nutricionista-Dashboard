@@ -52,7 +52,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
-  const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
 
   // Loading & Error states
   const [loading, setLoading] = useState(false);
@@ -111,17 +110,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
-    setSimulatedCode(null);
     setLoading(true);
 
     try {
       const result = await requestPasswordReset(forgotEmail);
       if (result.success) {
-        if (result.simulated && result.code) {
-          setSimulatedCode(result.code);
-          setForgotCode(result.code);
-        }
-        setSuccessMessage(`Código enviado com sucesso para ${forgotEmail}! Verifique sua caixa de entrada.`);
+        setForgotCode('');
+        setSuccessMessage(`Código enviado com sucesso para ${forgotEmail}! Verifique sua caixa de entrada no e-mail.`);
         setForgotStep('verify_and_reset');
       } else {
         setErrorMessage(result.error || 'Não foi possível enviar o código de recuperação.');
@@ -178,7 +173,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     }
   };
 
-
   const handleOpenForgotPassword = () => {
     setMode('forgot_password');
     setForgotStep('request_code');
@@ -186,7 +180,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     setForgotCode('');
     setForgotNewPassword('');
     setForgotConfirmPassword('');
-    setSimulatedCode(null);
     setErrorMessage(null);
     setSuccessMessage(null);
   };
@@ -281,21 +274,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
             </div>
           )}
 
-          {/* Simulated Code Notice (when Resend API key is not yet set in environment) */}
-          {simulatedCode && mode === 'forgot_password' && (
-            <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
-              <div className="flex items-center gap-1.5 font-bold">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>Código Gerado (Modo Demonstração)</span>
-              </div>
-              <p className="text-[11px] text-amber-800 font-mono">
-                Seu código de 6 dígitos é: <strong>{simulatedCode}</strong>
-              </p>
-              <p className="text-[10px] text-slate-500">
-                (Configure sua chave no Resend para enviar e-mails reais para a caixa de entrada).
-              </p>
-            </div>
-          )}
 
           {/* LOGIN FORM */}
           {mode === 'login' && (

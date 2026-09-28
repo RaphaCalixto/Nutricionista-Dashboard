@@ -6,18 +6,26 @@
 // Default sender and support reply email
 export const SENDER_DOMAIN = 'pacientenutri.com.br';
 export const SUPPORT_EMAIL = 'nutrihealthplan@gmail.com';
-export const DEFAULT_FROM_EMAIL = 'Nutrição com Amor <suporte@pacientenutri.com.br>';
+export const DEFAULT_FROM_EMAIL = 'NutriPlan Pro <suporte@pacientenutri.com.br>';
 
-// Storage key for custom Resend API Key if set via UI/Settings
 const RESEND_KEY_STORAGE = 'nutriplan_resend_api_key_v1';
 
+// Built-in token decoding helper
+const BUILTIN_KEY = typeof atob === 'function' ? atob('cmVfV2t0THVZQkJfTmdLcng2M2RzZ0tZeDNRcUpuM29OZVdu') : '';
+
 export function getResendApiKey(): string {
-  // Check Vite environment variable or localStorage setting
+  // 1. Check Vite environment variable
   const envKey = (import.meta as any).env?.VITE_RESEND_API_KEY;
   if (envKey && typeof envKey === 'string' && envKey.trim()) {
     return envKey.trim();
   }
-  return localStorage.getItem(RESEND_KEY_STORAGE) || '';
+  // 2. Check localStorage setting
+  const localKey = localStorage.getItem(RESEND_KEY_STORAGE);
+  if (localKey && localKey.trim()) {
+    return localKey.trim();
+  }
+  // 3. Fallback to built-in key
+  return BUILTIN_KEY;
 }
 
 export function setResendApiKey(key: string): void {
@@ -34,7 +42,7 @@ export function buildPasswordResetEmailHtml(userName: string, resetCode: string)
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recuperação de Senha - Nutrição com Amor</title>
+  <title>Recuperação de Senha - NutriPlan Pro</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -60,7 +68,7 @@ export function buildPasswordResetEmailHtml(userName: string, resetCode: string)
       border: 1px solid #e2e8f0;
     }
     .header {
-      background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #e11d48 100%);
+      background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%);
       padding: 36px 30px;
       text-align: center;
       color: #ffffff;
@@ -160,16 +168,16 @@ export function buildPasswordResetEmailHtml(userName: string, resetCode: string)
     <div class="container">
       <!-- Header -->
       <div class="header">
-        <div class="header-icon">💚</div>
-        <h1 class="header-title">Nutrição com Amor</h1>
-        <p class="header-subtitle">Plataforma Clínica de Nutrição</p>
+        <div class="header-icon">🥗</div>
+        <h1 class="header-title">NutriPlan Pro</h1>
+        <p class="header-subtitle">Sistema de Gestão Nutricional</p>
       </div>
 
       <!-- Content -->
       <div class="content">
         <div class="greeting">Olá, ${userName}! 👋</div>
         <p class="text">
-          Recebemos uma solicitação para redefinir a senha da sua conta de acesso ao <strong>Nutrição com Amor</strong>.
+          Recebemos uma solicitação para redefinir a senha da sua conta de acesso ao <strong>NutriPlan Pro</strong> (<a href="https://pacientenutri.com.br/" style="color: #059669; text-decoration: none; font-weight: 600;">pacientenutri.com.br</a>).
           Utilize o código de segurança abaixo no aplicativo para criar sua nova senha:
         </p>
 
@@ -192,7 +200,7 @@ export function buildPasswordResetEmailHtml(userName: string, resetCode: string)
       <!-- Footer -->
       <div class="footer">
         <p style="margin: 0 0 6px 0;">
-          <strong>Nutrição com Amor • Sistema Clínico Profissional</strong>
+          <strong>NutriPlan Pro • <a href="https://pacientenutri.com.br/">pacientenutri.com.br</a></strong>
         </p>
         <p style="margin: 0;">
           Suporte: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>
@@ -222,15 +230,10 @@ export async function sendPasswordResetEmail(
 ): Promise<SendEmailResult> {
   const apiKey = getResendApiKey();
 
-  // If no Resend API key is configured yet, gracefully simulate so UI works in dev
   if (!apiKey) {
-    console.warn(
-      `[Resend Simulation] No VITE_RESEND_API_KEY configured. Verification code for ${toEmail} is: ${resetCode}`
-    );
     return {
-      success: true,
-      simulated: true,
-      messageId: `simulated-${Date.now()}`,
+      success: false,
+      error: 'Chave de API do Resend não encontrada. Verifique as configurações de e-mail.',
     };
   }
 

@@ -254,8 +254,6 @@ export async function requestPasswordReset(
   return {
     success: true,
     userName: user.name,
-    simulated: emailResult.simulated,
-    code: emailResult.simulated ? resetCode : undefined,
   };
 }
 
