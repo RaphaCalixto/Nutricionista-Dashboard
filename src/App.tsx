@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import type { NavTab } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
+import { MobileNav } from './components/layout/MobileNav';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PatientListView } from './components/patients/PatientListView';
 import { PatientDetailView } from './components/patients/PatientDetailView';
@@ -340,7 +341,7 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-64 flex flex-col min-w-0">
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0 pb-20 lg:pb-0">
         {/* Top Navbar */}
         <Navbar
           onNewPatient={() => {
@@ -355,7 +356,7 @@ export function App() {
         />
 
         {/* Dynamic Page Views */}
-        <main className="p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
           {/* Dashboard Tab */}
           {currentTab === 'dashboard' && (
             <DashboardView
@@ -492,6 +493,24 @@ export function App() {
           )}
         </main>
       </div>
+
+      {/* MOBILE / TABLET BOTTOM NAV & MENU */}
+      <MobileNav
+        currentTab={currentTab}
+        onSelectTab={handleSelectTab}
+        clinicProfile={clinicProfile}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onNewPatient={() => {
+          setPatientToEdit(null);
+          setIsPatientModalOpen(true);
+        }}
+        onNewAppointment={() => {
+          setAppointmentToEdit(null);
+          setAppointmentInitialDate(undefined);
+          setIsAppointmentModalOpen(true);
+        }}
+      />
 
       {/* GLOBAL MODALS */}
       <PatientModal

@@ -439,6 +439,45 @@ export const AnamnesisForm: React.FC<AnamnesisFormProps> = ({
             className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none"
           />
         </div>
+
+        {/* Bottom Save Action Bar */}
+        <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 bg-slate-50/90 -mx-6 -mb-6 p-6 rounded-b-2xl">
+          <div className="flex items-center gap-2 text-xs text-slate-500 text-center sm:text-left">
+            {savedSuccess ? (
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5 animate-fade-in bg-emerald-100/70 px-3 py-1.5 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Anamnese salva com sucesso no banco de dados!</span>
+              </span>
+            ) : (
+              <span className="text-slate-500">
+                Os dados serão salvos no prontuário do paciente e sincronizados em nuvem.
+              </span>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Salvando Dados...</span>
+              </>
+            ) : savedSuccess ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Anamnese Salva!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Salvar Anamnese Clínica</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );
