@@ -40,6 +40,8 @@ export function isUUID(str?: string | null): boolean {
 
 export function ensureUUID(str?: string | null): string {
   if (str && isUUID(str)) return str;
+  if (str === 'pat-raphael' || str === 'raphael') return '00000000-0000-4000-8000-000000000001';
+  if (str === 'pat-1' || str === 'camila') return '00000000-0000-4000-8000-000000000002';
   return generateUUID();
 }
 

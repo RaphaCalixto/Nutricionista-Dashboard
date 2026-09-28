@@ -1,5 +1,8 @@
 import type { Patient, Anamnesis, Anthropometry, DietPlan, Appointment, Supplement, EvolutionPhoto, ClinicProfile } from '../types';
 
+export const PATIENT_RAPHAEL_ID = '00000000-0000-4000-8000-000000000001';
+export const PATIENT_CAMILA_ID = '00000000-0000-4000-8000-000000000002';
+
 export const INITIAL_CLINIC_PROFILE: ClinicProfile = {
   nutritionistName: 'Raphael',
   crn: '',
@@ -12,7 +15,7 @@ export const INITIAL_CLINIC_PROFILE: ClinicProfile = {
 
 export const INITIAL_PATIENTS: Patient[] = [
   {
-    id: 'pat-raphael',
+    id: PATIENT_RAPHAEL_ID,
     name: 'Raphael',
     email: 'raphael@email.com',
     phone: '(11) 98888-7777',
@@ -27,7 +30,7 @@ export const INITIAL_PATIENTS: Patient[] = [
     updatedAt: '2026-03-12T15:00:00Z'
   },
   {
-    id: 'pat-1',
+    id: PATIENT_CAMILA_ID,
     name: 'Camila Silva Santos',
     email: 'camila.santos@email.com',
     phone: '(11) 98765-4321',
@@ -44,9 +47,9 @@ export const INITIAL_PATIENTS: Patient[] = [
 ];
 
 export const INITIAL_ANAMNESIS: Record<string, Anamnesis> = {
-  'pat-raphael': {
-    id: 'anam-raphael',
-    patientId: 'pat-raphael',
+  [PATIENT_RAPHAEL_ID]: {
+    id: '10000000-0000-4000-8000-000000000001',
+    patientId: PATIENT_RAPHAEL_ID,
     mainComplaint: 'Desejo de reduzir percentual de gordura (de 22% para 14%) mantendo massa muscular, melhorar o rendimento nos treinos e reduzir a ansiedade por comida doce à noite.',
     clinicalHistory: {
       pathologies: ['Nenhuma patologia diagnosticada'],
@@ -75,9 +78,9 @@ export const INITIAL_ANAMNESIS: Record<string, Anamnesis> = {
     },
     updatedAt: '2026-03-12T15:00:00Z'
   },
-  'pat-1': {
-    id: 'anam-1',
-    patientId: 'pat-1',
+  [PATIENT_CAMILA_ID]: {
+    id: '10000000-0000-4000-8000-000000000002',
+    patientId: PATIENT_CAMILA_ID,
     mainComplaint: 'Dificuldade para perder gordura abdominal, inchaço frequente e cansaço à tarde.',
     clinicalHistory: {
       pathologies: ['Rinite Alérgica'],
@@ -109,10 +112,10 @@ export const INITIAL_ANAMNESIS: Record<string, Anamnesis> = {
 };
 
 export const INITIAL_ANTHROPOMETRY: Record<string, Anthropometry[]> = {
-  'pat-raphael': [
+  [PATIENT_RAPHAEL_ID]: [
     {
-      id: 'anthro-r1',
-      patientId: 'pat-raphael',
+      id: '20000000-0000-4000-8000-000000000001',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-01-10',
       weight: 81.5,
       height: 165,
@@ -138,8 +141,8 @@ export const INITIAL_ANTHROPOMETRY: Record<string, Anthropometry[]> = {
       notes: 'Avaliação inicial: Foco em déficit calórico controlado para preservação de massa muscular.'
     },
     {
-      id: 'anthro-r2',
-      patientId: 'pat-raphael',
+      id: '20000000-0000-4000-8000-000000000002',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-02-10',
       weight: 78.5,
       height: 165,
@@ -165,8 +168,8 @@ export const INITIAL_ANTHROPOMETRY: Record<string, Anthropometry[]> = {
       notes: 'Retorno 30 dias: Perda de 3kg, -4.5cm de abdômen e ganho de 400g de massa magra!'
     },
     {
-      id: 'anthro-r3',
-      patientId: 'pat-raphael',
+      id: '20000000-0000-4000-8000-000000000003',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-03-12',
       weight: 76.0,
       height: 165,
@@ -192,10 +195,10 @@ export const INITIAL_ANTHROPOMETRY: Record<string, Anthropometry[]> = {
       notes: 'Retorno 60 dias: Total de 5.5kg eliminados! -9cm de abdômen. Excelente definição corporal.'
     }
   ],
-  'pat-1': [
+  [PATIENT_CAMILA_ID]: [
     {
-      id: 'anthro-1',
-      patientId: 'pat-1',
+      id: '20000000-0000-4000-8000-000000000004',
+      patientId: PATIENT_CAMILA_ID,
       date: '2026-01-15',
       weight: 68.5,
       height: 165,
@@ -216,14 +219,14 @@ export const INITIAL_ANTHROPOMETRY: Record<string, Anthropometry[]> = {
 };
 
 export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
-  'pat-raphael': [
+  [PATIENT_RAPHAEL_ID]: [
     {
-      id: 'diet-raphael-1',
-      patientId: 'pat-raphael',
+      id: '30000000-0000-4000-8000-000000000001',
+      patientId: PATIENT_RAPHAEL_ID,
       title: 'Plano Alimentar - Definição Muscular & Performance (Fase 2)',
       description: 'Dieta hiperproteica (2.0g/kg) calculada para 76kg, com timing estratégico de carboidratos ao redor do treino para manter a intensidade e queimar gordura.',
       targetCalories: 2100,
-      targetProtein: 155, // ~2.0g/kg
+      targetProtein: 155,
       targetCarbs: 230,
       targetFats: 58,
       waterTargetMl: 3200,
@@ -236,14 +239,14 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
       ],
       meals: [
         {
-          id: 'mr-1',
+          id: '31000000-0000-4000-8000-000000000001',
           name: 'Café da Manhã',
           time: '07:30',
           order: 1,
           notes: 'Pode colocar canela em pó na banana com aveia a gosto.',
           items: [
             {
-              id: 'ir-1',
+              id: '32000000-0000-4000-8000-000000000001',
               foodId: 'taco-18',
               foodName: 'Ovo de galinha inteiro cozido / mexido',
               quantity: 3,
@@ -256,7 +259,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               substitutes: ['4 claras + 1 ovo inteiro', '120g de queijo cottage']
             },
             {
-              id: 'ir-2',
+              id: '32000000-0000-4000-8000-000000000002',
               foodId: 'taco-6',
               foodName: 'Pão de forma 100% integral',
               quantity: 2,
@@ -269,7 +272,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               substitutes: ['1 tapioca média (60g)', '40g de aveia em flocos']
             },
             {
-              id: 'ir-3',
+              id: '32000000-0000-4000-8000-000000000003',
               foodId: 'taco-35',
               foodName: 'Banana prata crua',
               quantity: 1,
@@ -283,14 +286,14 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
           ]
         },
         {
-          id: 'mr-2',
+          id: '31000000-0000-4000-8000-000000000002',
           name: 'Almoço',
           time: '12:30',
           order: 2,
           notes: 'Azeite de oliva extravirgem por cima dos vegetais.',
           items: [
             {
-              id: 'ir-4',
+              id: '32000000-0000-4000-8000-000000000004',
               foodId: 'taco-17',
               foodName: 'Peito de frango grelhado sem pele',
               quantity: 160,
@@ -303,7 +306,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               substitutes: ['150g de patinho moído grelhado', '170g de tilápia grelhada']
             },
             {
-              id: 'ir-5',
+              id: '32000000-0000-4000-8000-000000000005',
               foodId: 'taco-1',
               foodName: 'Arroz branco cozido',
               quantity: 5,
@@ -316,7 +319,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               substitutes: ['150g de batata inglesa cozida', '130g de mandioca']
             },
             {
-              id: 'ir-6',
+              id: '32000000-0000-4000-8000-000000000006',
               foodId: 'taco-13',
               foodName: 'Feijão carioca cozido',
               quantity: 1,
@@ -328,7 +331,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 11.1
             },
             {
-              id: 'ir-7',
+              id: '32000000-0000-4000-8000-000000000007',
               foodId: 'taco-47',
               foodName: 'Azeite de oliva extravirgem',
               quantity: 1,
@@ -340,7 +343,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 0.0
             },
             {
-              id: 'ir-8',
+              id: '32000000-0000-4000-8000-000000000008',
               foodId: 'taco-45',
               foodName: 'Brócolis cozido no vapor',
               quantity: 1,
@@ -354,14 +357,14 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
           ]
         },
         {
-          id: 'mr-3',
+          id: '31000000-0000-4000-8000-000000000003',
           name: 'Lanche da Tarde (Pré-Treino)',
           time: '16:30',
           order: 3,
           notes: 'Consumir 1 hora antes de iniciar os treinos.',
           items: [
             {
-              id: 'ir-9',
+              id: '32000000-0000-4000-8000-000000000009',
               foodId: 'taco-32',
               foodName: 'Whey Protein Concentrado 80%',
               quantity: 1,
@@ -373,7 +376,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 0.0
             },
             {
-              id: 'ir-10',
+              id: '32000000-0000-4000-8000-000000000010',
               foodId: 'taco-3',
               foodName: 'Aveia em flocos',
               quantity: 2,
@@ -385,7 +388,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 2.7
             },
             {
-              id: 'ir-11',
+              id: '32000000-0000-4000-8000-000000000011',
               foodId: 'taco-36',
               foodName: 'Maçã gala com casca',
               quantity: 1,
@@ -399,14 +402,14 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
           ]
         },
         {
-          id: 'mr-4',
+          id: '31000000-0000-4000-8000-000000000004',
           name: 'Jantar (Pós-Treino)',
           time: '20:00',
           order: 4,
           notes: 'Refeição anabólica de recuperação muscular.',
           items: [
             {
-              id: 'ir-12',
+              id: '32000000-0000-4000-8000-000000000012',
               foodId: 'taco-20',
               foodName: 'Patinho bovino moído / grelhado',
               quantity: 150,
@@ -419,7 +422,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               substitutes: ['160g de frango grelhado', '170g de salmão grelhado']
             },
             {
-              id: 'ir-13',
+              id: '32000000-0000-4000-8000-000000000013',
               foodId: 'taco-10',
               foodName: 'Batata doce cozida',
               quantity: 160,
@@ -431,7 +434,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 3.5
             },
             {
-              id: 'ir-14',
+              id: '32000000-0000-4000-8000-000000000014',
               foodId: 'taco-42',
               foodName: 'Alface e tomate à vontade',
               quantity: 1,
@@ -443,7 +446,7 @@ export const INITIAL_DIET_PLANS: Record<string, DietPlan[]> = {
               fiber: 2.5
             },
             {
-              id: 'ir-15',
+              id: '32000000-0000-4000-8000-000000000015',
               foodId: 'taco-47',
               foodName: 'Azeite de oliva extravirgem',
               quantity: 1,
@@ -471,11 +474,11 @@ const getFormattedDate = (daysFromToday: number) => {
 
 export const INITIAL_APPOINTMENTS: Appointment[] = [
   {
-    id: 'apt-raphael-today',
-    patientId: 'pat-raphael',
+    id: '40000000-0000-4000-8000-000000000001',
+    patientId: PATIENT_RAPHAEL_ID,
     patientName: 'Raphael',
     patientPhone: '5511988887777',
-    date: getFormattedDate(0), // Today
+    date: getFormattedDate(0),
     time: '10:30',
     durationMinutes: 60,
     type: 'evaluation',
@@ -486,11 +489,11 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     createdAt: '2026-03-01T10:00:00Z'
   },
   {
-    id: 'apt-1',
-    patientId: 'pat-1',
+    id: '40000000-0000-4000-8000-000000000002',
+    patientId: PATIENT_CAMILA_ID,
     patientName: 'Camila Silva Santos',
     patientPhone: '5511987654321',
-    date: getFormattedDate(0), // Today
+    date: getFormattedDate(0),
     time: '14:30',
     durationMinutes: 60,
     type: 'follow_up',
@@ -503,10 +506,10 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
 ];
 
 export const INITIAL_SUPPLEMENTS: Record<string, Supplement[]> = {
-  'pat-raphael': [
+  [PATIENT_RAPHAEL_ID]: [
     {
-      id: 'sup-r1',
-      patientId: 'pat-raphael',
+      id: '50000000-0000-4000-8000-000000000001',
+      patientId: PATIENT_RAPHAEL_ID,
       name: 'Creatina Monohidratada 100% Pura',
       dosage: '5g ao dia',
       timing: 'Pós-treino ou junto ao almoço',
@@ -515,8 +518,8 @@ export const INITIAL_SUPPLEMENTS: Record<string, Supplement[]> = {
       createdAt: '2026-01-10T10:00:00Z'
     },
     {
-      id: 'sup-r2',
-      patientId: 'pat-raphael',
+      id: '50000000-0000-4000-8000-000000000002',
+      patientId: PATIENT_RAPHAEL_ID,
       name: 'Whey Protein Concentrado 80%',
       dosage: '30g (1 dosador)',
       timing: 'Lanche da tarde (Pré-Treino)',
@@ -525,8 +528,8 @@ export const INITIAL_SUPPLEMENTS: Record<string, Supplement[]> = {
       createdAt: '2026-01-10T10:00:00Z'
     },
     {
-      id: 'sup-r3',
-      patientId: 'pat-raphael',
+      id: '50000000-0000-4000-8000-000000000003',
+      patientId: PATIENT_RAPHAEL_ID,
       name: 'Ômega 3 Ultra EPA/DHA',
       dosage: '2 cápsulas de 1000mg',
       timing: 'Junto ao jantar',
@@ -535,10 +538,10 @@ export const INITIAL_SUPPLEMENTS: Record<string, Supplement[]> = {
       createdAt: '2026-01-10T10:00:00Z'
     }
   ],
-  'pat-1': [
+  [PATIENT_CAMILA_ID]: [
     {
-      id: 'sup-1',
-      patientId: 'pat-1',
+      id: '50000000-0000-4000-8000-000000000004',
+      patientId: PATIENT_CAMILA_ID,
       name: 'Creatina Monohidratada',
       dosage: '3g ao dia',
       timing: 'Qualquer horário',
@@ -550,10 +553,10 @@ export const INITIAL_SUPPLEMENTS: Record<string, Supplement[]> = {
 };
 
 export const INITIAL_EVOLUTION_PHOTOS: Record<string, EvolutionPhoto[]> = {
-  'pat-raphael': [
+  [PATIENT_RAPHAEL_ID]: [
     {
-      id: 'photo-r1',
-      patientId: 'pat-raphael',
+      id: '60000000-0000-4000-8000-000000000001',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-01-10',
       angle: 'front',
       weight: 81.5,
@@ -562,8 +565,8 @@ export const INITIAL_EVOLUTION_PHOTOS: Record<string, EvolutionPhoto[]> = {
       createdAt: '2026-01-10T11:00:00Z'
     },
     {
-      id: 'photo-r2',
-      patientId: 'pat-raphael',
+      id: '60000000-0000-4000-8000-000000000002',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-03-12',
       angle: 'front',
       weight: 76.0,
@@ -572,8 +575,8 @@ export const INITIAL_EVOLUTION_PHOTOS: Record<string, EvolutionPhoto[]> = {
       createdAt: '2026-03-12T16:00:00Z'
     },
     {
-      id: 'photo-r3',
-      patientId: 'pat-raphael',
+      id: '60000000-0000-4000-8000-000000000003',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-01-10',
       angle: 'side',
       weight: 81.5,
@@ -582,8 +585,8 @@ export const INITIAL_EVOLUTION_PHOTOS: Record<string, EvolutionPhoto[]> = {
       createdAt: '2026-01-10T11:00:00Z'
     },
     {
-      id: 'photo-r4',
-      patientId: 'pat-raphael',
+      id: '60000000-0000-4000-8000-000000000004',
+      patientId: PATIENT_RAPHAEL_ID,
       date: '2026-03-12',
       angle: 'side',
       weight: 76.0,
