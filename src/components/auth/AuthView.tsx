@@ -74,6 +74,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
 
     try {
       const c = clerk as any;
+
+      if (!c || !c.loaded) {
+        throw new Error(
+          'O serviço do Clerk ainda não foi carregado. Verifique se o apontamento de DNS (CNAME clerk.pacientenutri.com.br) já propagou no seu painel de domínio.'
+        );
+      }
+
       const callbackUrl = `${window.location.origin}/sso-callback`;
 
       // 1. Direct OAuth redirect if client is ready
@@ -120,21 +127,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
         });
         return;
       }
+
+      throw new Error('Serviço de autenticação Google indisponível no momento.');
     } catch (err: any) {
       console.error('[Google Auth Error]', err);
-      // Fallback to open modal on error
-      try {
-        const c = clerk as any;
-        if (mode === 'register' && c?.openSignUp) {
-          c.openSignUp();
-          return;
-        }
-        if (c?.openSignIn) {
-          c.openSignIn();
-          return;
-        }
-      } catch (e2) {}
-      setErrorMessage(err?.errors?.[0]?.message || err?.message || 'Erro ao conectar com a conta Google.');
+      setErrorMessage(
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'Erro ao conectar com a conta Google. Verifique a configuração do Clerk.'
+      );
     } finally {
       setLoading(false);
     }
