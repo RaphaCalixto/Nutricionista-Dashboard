@@ -11,9 +11,19 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Apple
+  Apple,
+  KeyRound,
+  ArrowLeft,
+  RotateCcw,
+  Check
 } from 'lucide-react';
-import { loginUser, registerUser, DEMO_USER } from '../../services/auth';
+import {
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  verifyAndResetPassword
+} from '../../services/auth';
+import { SUPPORT_EMAIL } from '../../services/resend';
 import type { User } from '../../types';
 
 interface AuthViewProps {
@@ -21,7 +31,7 @@ interface AuthViewProps {
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
   
   // Login form states
   const [loginEmail, setLoginEmail] = useState('');
@@ -34,6 +44,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+
+  // Forgot password form states
+  const [forgotStep, setForgotStep] = useState<'request_code' | 'verify_and_reset'>('request_code');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
 
   // Loading & Error states
   const [loading, setLoading] = useState(false);
@@ -88,10 +107,88 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     }
   };
 
-  const handleFillDemo = () => {
-    setLoginEmail(DEMO_USER.email);
-    setLoginPassword(DEMO_USER.password || '123456');
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
+    setSimulatedCode(null);
+    setLoading(true);
+
+    try {
+      const result = await requestPasswordReset(forgotEmail);
+      if (result.success) {
+        if (result.simulated && result.code) {
+          setSimulatedCode(result.code);
+          setForgotCode(result.code);
+        }
+        setSuccessMessage(`Código enviado com sucesso para ${forgotEmail}! Verifique sua caixa de entrada.`);
+        setForgotStep('verify_and_reset');
+      } else {
+        setErrorMessage(result.error || 'Não foi possível enviar o código de recuperação.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Erro inesperado ao solicitar recuperação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setErrorMessage('As novas senhas digitadas não coincidem.');
+      return;
+    }
+
+    if (forgotNewPassword.length < 6) {
+      setErrorMessage('A nova senha deve conter no mínimo 6 caracteres.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await verifyAndResetPassword(forgotEmail, forgotCode, forgotNewPassword);
+      if (result.success) {
+        setSuccessMessage('Senha redefinida com sucesso! Entrando no sistema...');
+        // Automatically login with new credentials
+        const loginRes = await loginUser(forgotEmail, forgotNewPassword);
+        if (loginRes.success && loginRes.user) {
+          setTimeout(() => {
+            onAuthSuccess(loginRes.user!);
+          }, 800);
+        } else {
+          setTimeout(() => {
+            setMode('login');
+            setLoginEmail(forgotEmail);
+            setLoginPassword('');
+            setForgotStep('request_code');
+          }, 1200);
+        }
+      } else {
+        setErrorMessage(result.error || 'Falha ao redefinir a senha.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Erro inesperado ao redefinir a senha.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleOpenForgotPassword = () => {
+    setMode('forgot_password');
+    setForgotStep('request_code');
+    setForgotEmail(loginEmail || '');
+    setForgotCode('');
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
+    setSimulatedCode(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
   };
 
   return (
@@ -116,37 +213,58 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
 
         {/* Card Container */}
         <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8">
-          {/* Tab Switcher */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl mb-6 text-sm font-semibold">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login');
-                setErrorMessage(null);
-              }}
-              className={`py-2.5 rounded-xl transition-all duration-200 ${
-                mode === 'login'
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register');
-                setErrorMessage(null);
-              }}
-              className={`py-2.5 rounded-xl transition-all duration-200 ${
-                mode === 'register'
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Criar Conta
-            </button>
-          </div>
+          {/* Tab Switcher (Only on login / register) */}
+          {mode !== 'forgot_password' ? (
+            <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl mb-6 text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setErrorMessage(null);
+                }}
+                className={`py-2.5 rounded-xl transition-all duration-200 ${
+                  mode === 'login'
+                    ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setErrorMessage(null);
+                }}
+                className={`py-2.5 rounded-xl transition-all duration-200 ${
+                  mode === 'register'
+                    ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Criar Conta
+              </button>
+            </div>
+          ) : (
+            <div className="mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Voltar para o Login</span>
+              </button>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Recuperação</span>
+              </span>
+            </div>
+          )}
 
           {/* Feedback Alerts */}
           {errorMessage && (
@@ -163,8 +281,24 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
             </div>
           )}
 
+          {/* Simulated Code Notice (when Resend API key is not yet set in environment) */}
+          {simulatedCode && mode === 'forgot_password' && (
+            <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>Código Gerado (Modo Demonstração)</span>
+              </div>
+              <p className="text-[11px] text-amber-800 font-mono">
+                Seu código de 6 dígitos é: <strong>{simulatedCode}</strong>
+              </p>
+              <p className="text-[10px] text-slate-500">
+                (Configure sua chave no Resend para enviar e-mails reais para a caixa de entrada).
+              </p>
+            </div>
+          )}
+
           {/* LOGIN FORM */}
-          {mode === 'login' ? (
+          {mode === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -184,9 +318,18 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Senha
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Senha
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleOpenForgotPassword}
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
@@ -221,37 +364,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
                   </>
                 )}
               </button>
-
-              {/* Demo user helper card */}
-              <div className="mt-6 pt-5 border-t border-slate-100">
-                <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3.5 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Conta de Demonstração (Dra. Laís Leal)</span>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-600">
-                    Acesse para ver os dados simulados completos (paciente Raphael, dietas, etc.):
-                  </p>
-                  <div className="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 text-xs font-mono text-slate-700 flex items-center justify-between">
-                    <span>
-                      <strong>E-mail:</strong> {DEMO_USER.email} <br />
-                      <strong>Senha:</strong> {DEMO_USER.password}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleFillDemo}
-                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-sans text-xs font-bold rounded-md transition-colors"
-                    >
-                      Preencher
-                    </button>
-                  </div>
-                </div>
-              </div>
             </form>
-          ) : (
-            /* REGISTER FORM */
+          )}
+
+          {/* REGISTER FORM */}
+          {mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -351,12 +468,163 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
               </button>
             </form>
           )}
+
+          {/* FORGOT PASSWORD FORM (RESEND EMAIL INTEGRATION) */}
+          {mode === 'forgot_password' && (
+            <div className="space-y-4">
+              <div className="text-center mb-2">
+                <h3 className="font-extrabold text-slate-800 text-lg">
+                  {forgotStep === 'request_code' ? 'Recuperar Senha' : 'Nova Senha'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {forgotStep === 'request_code'
+                    ? 'Informe seu e-mail para enviarmos um código de segurança via Resend.'
+                    : `Digite o código de 6 dígitos enviado para ${forgotEmail} e defina sua nova senha.`}
+                </p>
+              </div>
+
+              {forgotStep === 'request_code' ? (
+                /* Step 1: Request Code */
+                <form onSubmit={handleForgotPasswordRequest} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      E-mail Cadastrado
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="seu.email@exemplo.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200/80 text-[11px] text-slate-600 flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      O e-mail será enviado com remetente de suporte <strong>{SUPPORT_EMAIL}</strong>.
+                    </span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Enviar Código de Recuperação</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: Verify Code & Reset Password */
+                <form onSubmit={handleForgotPasswordReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Código de 6 Dígitos
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="123456"
+                        value={forgotCode}
+                        onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-mono tracking-widest text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Nova Senha
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type={showForgotNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="Mínimo de 6 caracteres"
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      >
+                        {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Confirmar Nova Senha
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type={showForgotNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="Repita a nova senha"
+                        value={forgotConfirmPassword}
+                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={handleForgotPasswordRequest}
+                      disabled={loading}
+                      className="text-xs font-bold text-slate-500 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reenviar código</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Redefinir Senha e Acessar</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer info */}
         <div className="text-center mt-6 text-xs text-slate-400 flex items-center justify-center gap-2">
           <Apple className="w-4 h-4 text-emerald-400" />
-          <span>Nutrição com Amor • Sistema Clínico Profissional</span>
+          <span>Nutrição com Amor • Suporte: {SUPPORT_EMAIL}</span>
         </div>
       </div>
     </div>

@@ -1,8 +1,16 @@
 import { supabase } from './supabase';
+import { sendPasswordResetEmail } from './resend';
 import type { User } from '../types';
 
 const USERS_STORAGE_KEY = 'nutriplan_auth_users_v1';
 const SESSION_STORAGE_KEY = 'nutriplan_auth_session_v1';
+const PASSWORD_RESETS_STORAGE_KEY = 'nutriplan_password_resets_v1';
+
+interface PasswordResetToken {
+  email: string;
+  code: string;
+  expiresAt: number; // timestamp
+}
 
 export const DEMO_USER: User = {
   id: 'user-lais-leal-default',
@@ -185,3 +193,138 @@ export function logoutUser(): void {
     supabase.auth.signOut();
   } catch (e) {}
 }
+
+/**
+ * Initiates the password recovery flow by generating a 6-digit code
+ * and sending an email via Resend to the user.
+ */
+export async function requestPasswordReset(
+  email: string
+): Promise<{ success: boolean; userName?: string; code?: string; error?: string; simulated?: boolean }> {
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { success: false, error: 'Por favor, informe um endereço de e-mail válido.' };
+  }
+
+  const users = getAllUsers();
+  const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+  if (!user) {
+    return {
+      success: false,
+      error: 'Não encontramos nenhuma conta cadastrada com este e-mail no sistema.',
+    };
+  }
+
+  // Generate 6-digit verification code
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+
+  // Save reset token in local storage
+  const resets: PasswordResetToken[] = (() => {
+    try {
+      const raw = localStorage.getItem(PASSWORD_RESETS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  // Filter out any previous expired or existing tokens for this email
+  const updatedResets = resets.filter((r) => r.email.toLowerCase() !== cleanEmail && r.expiresAt > Date.now());
+  updatedResets.push({
+    email: cleanEmail,
+    code: resetCode,
+    expiresAt,
+  });
+
+  localStorage.setItem(PASSWORD_RESETS_STORAGE_KEY, JSON.stringify(updatedResets));
+
+  // Send email via Resend
+  const emailResult = await sendPasswordResetEmail(cleanEmail, user.name, resetCode);
+
+  if (!emailResult.success) {
+    return {
+      success: false,
+      error: emailResult.error || 'Não foi possível enviar o e-mail de recuperação. Tente novamente.',
+    };
+  }
+
+  return {
+    success: true,
+    userName: user.name,
+    simulated: emailResult.simulated,
+    code: emailResult.simulated ? resetCode : undefined,
+  };
+}
+
+/**
+ * Validates the 6-digit verification code and updates the user's password.
+ */
+export async function verifyAndResetPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanCode = code.trim();
+  const cleanPassword = newPassword.trim();
+
+  if (!cleanCode || cleanCode.length !== 6) {
+    return { success: false, error: 'O código de recuperação deve conter 6 dígitos.' };
+  }
+
+  if (!cleanPassword || cleanPassword.length < 6) {
+    return { success: false, error: 'A nova senha deve conter no mínimo 6 caracteres.' };
+  }
+
+  // Check reset token
+  const resets: PasswordResetToken[] = (() => {
+    try {
+      const raw = localStorage.getItem(PASSWORD_RESETS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  const token = resets.find(
+    (r) => r.email.toLowerCase() === cleanEmail && r.code === cleanCode && r.expiresAt > Date.now()
+  );
+
+  if (!token) {
+    return {
+      success: false,
+      error: 'Código de recuperação inválido ou expirado. Por favor, solicite um novo código.',
+    };
+  }
+
+  // Update user's password
+  const users = getAllUsers();
+  const userIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+
+  if (userIndex === -1) {
+    return { success: false, error: 'Usuário não encontrado.' };
+  }
+
+  users[userIndex].password = cleanPassword;
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+
+  // If this is the demo account, also update demo password in memory
+  if (cleanEmail === DEMO_USER.email.toLowerCase()) {
+    DEMO_USER.password = cleanPassword;
+  }
+
+  // Clean up used token
+  const remainingResets = resets.filter((r) => r.email.toLowerCase() !== cleanEmail);
+  localStorage.setItem(PASSWORD_RESETS_STORAGE_KEY, JSON.stringify(remainingResets));
+
+  // Also attempt Supabase password update if user is authenticated with Supabase
+  try {
+    await supabase.auth.updateUser({ password: cleanPassword });
+  } catch (e) {}
+
+  return { success: true };
+}
+
