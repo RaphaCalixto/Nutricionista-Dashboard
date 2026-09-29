@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser, useClerk, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { Sidebar } from './components/layout/Sidebar';
 import type { NavTab } from './components/layout/Sidebar';
@@ -221,6 +221,107 @@ export function App() {
     }
   }, [selectedPatient]);
 
+  // ==================== MOBILE & BROWSER NATIVE BACK BUTTON INTEGRATION ====================
+  const isPopStateRef = useRef(false);
+
+  const pushNavState = useCallback(
+    (newState: {
+      tab: NavTab;
+      patientId?: string | null;
+      isDietEdit?: boolean;
+      isPrint?: boolean;
+      modal?: 'patient' | 'appointment' | null;
+    }) => {
+      if (isPopStateRef.current) return;
+      try {
+        const stateObj = {
+          tab: newState.tab,
+          patientId: newState.patientId || null,
+          isDietEdit: !!newState.isDietEdit,
+          isPrint: !!newState.isPrint,
+          modal: newState.modal || null,
+        };
+
+        const currentHistoryState = window.history.state;
+        if (
+          currentHistoryState &&
+          currentHistoryState.tab === stateObj.tab &&
+          currentHistoryState.patientId === stateObj.patientId &&
+          currentHistoryState.isDietEdit === stateObj.isDietEdit &&
+          currentHistoryState.isPrint === stateObj.isPrint &&
+          currentHistoryState.modal === stateObj.modal
+        ) {
+          return;
+        }
+
+        window.history.pushState(stateObj, '');
+      } catch (e) {}
+    },
+    []
+  );
+
+  // Initialize initial history entry on load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.history.state) {
+      window.history.replaceState(
+        { tab: 'dashboard', patientId: null, isDietEdit: false, isPrint: false, modal: null },
+        ''
+      );
+    }
+  }, []);
+
+  // Listen to popstate (Mobile Native Back button, Gesture back, Browser Back)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      isPopStateRef.current = true;
+
+      if (!state) {
+        // Fallback to root dashboard
+        setCurrentTab('dashboard');
+        setSelectedPatient(null);
+        setDietPlanToEdit(null);
+        setDietPlanToPrint(null);
+        setIsPatientModalOpen(false);
+        setIsAppointmentModalOpen(false);
+      } else {
+        // Modals
+        setIsPatientModalOpen(state.modal === 'patient');
+        setIsAppointmentModalOpen(state.modal === 'appointment');
+
+        // Print & Edit sub-views
+        if (!state.isPrint) {
+          setDietPlanToPrint(null);
+        }
+        if (!state.isDietEdit && state.tab !== 'diet_planner') {
+          setDietPlanToEdit(null);
+        }
+
+        // Selected patient
+        if (state.patientId) {
+          setSelectedPatient((prev) => {
+            if (prev?.id === state.patientId) return prev;
+            return patients.find((p) => p.id === state.patientId) || prev;
+          });
+        } else {
+          setSelectedPatient(null);
+        }
+
+        // Active tab
+        if (state.tab) {
+          setCurrentTab(state.tab);
+        }
+      }
+
+      setTimeout(() => {
+        isPopStateRef.current = false;
+      }, 50);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [patients]);
+
   // Always scroll to top when changing tabs, opening patient records, or entering planner
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -233,11 +334,55 @@ export function App() {
   // Handle Tab Selection
   const handleSelectTab = (tab: NavTab) => {
     setDietPlanToPrint(null);
+    setDietPlanToEdit(null);
+    if (tab !== 'patients') {
+      setSelectedPatient(null);
+    }
     setCurrentTab(tab);
+    pushNavState({
+      tab,
+      patientId: tab === 'patients' && selectedPatient ? selectedPatient.id : null,
+    });
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
+  // Safe back navigation helper
+  const handleSafeBack = (fallback: () => void) => {
+    if (window.history.length > 1 && window.history.state) {
+      window.history.back();
+    } else {
+      fallback();
+    }
+  };
+
   // Patient Actions
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setCurrentTab('patients');
+    pushNavState({ tab: 'patients', patientId: patient.id });
+  };
+
+  const handleOpenNewPatientModal = (patient?: Patient | null) => {
+    setPatientToEdit(patient || null);
+    setIsPatientModalOpen(true);
+    pushNavState({
+      tab: currentTab,
+      patientId: selectedPatient?.id,
+      modal: 'patient',
+    });
+  };
+
+  const handleOpenAppointmentModal = (apt?: Appointment | null, initialDate?: string) => {
+    setAppointmentToEdit(apt || null);
+    setAppointmentInitialDate(initialDate);
+    setIsAppointmentModalOpen(true);
+    pushNavState({
+      tab: currentTab,
+      patientId: selectedPatient?.id,
+      modal: 'appointment',
+    });
+  };
+
   const handleSavePatient = async (patientData: Partial<Patient> & { name: string }) => {
     const saved = await savePatient(patientData);
     const updatedPatients = await getPatients();
@@ -321,10 +466,20 @@ export function App() {
     setEnergyCalcForPlanner(energyCalc || null);
     setDietPlanToPrint(null);
     setCurrentTab('diet_planner');
+    pushNavState({
+      tab: 'diet_planner',
+      patientId: patient.id,
+      isDietEdit: !!plan,
+    });
   };
 
   const handlePrintDietPlan = (patient: Patient, plan: DietPlan) => {
     setDietPlanToPrint({ patient, plan });
+    pushNavState({
+      tab: currentTab,
+      patientId: patient.id,
+      isPrint: true,
+    });
   };
 
   // Appointments Actions
@@ -453,15 +608,8 @@ export function App() {
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0 pb-20 lg:pb-0">
         {/* Top Navbar */}
         <Navbar
-          onNewPatient={() => {
-            setPatientToEdit(null);
-            setIsPatientModalOpen(true);
-          }}
-          onNewAppointment={() => {
-            setAppointmentToEdit(null);
-            setAppointmentInitialDate(undefined);
-            setIsAppointmentModalOpen(true);
-          }}
+          onNewPatient={() => handleOpenNewPatientModal(null)}
+          onNewAppointment={() => handleOpenAppointmentModal(null)}
         />
 
         {/* Dynamic Page Views */}
@@ -474,18 +622,9 @@ export function App() {
               dietPlansCount={patientDietPlans.length || 0}
               clinicProfile={clinicProfile}
               onNavigate={handleSelectTab}
-              onSelectPatient={(p) => {
-                setSelectedPatient(p);
-                setCurrentTab('patients');
-              }}
-              onNewPatient={() => {
-                setPatientToEdit(null);
-                setIsPatientModalOpen(true);
-              }}
-              onNewAppointment={() => {
-                setAppointmentToEdit(null);
-                setIsAppointmentModalOpen(true);
-              }}
+              onSelectPatient={handleSelectPatient}
+              onNewPatient={() => handleOpenNewPatientModal(null)}
+              onNewAppointment={() => handleOpenAppointmentModal(null)}
             />
           )}
 
@@ -496,11 +635,8 @@ export function App() {
                 <PatientDetailView
                   patient={selectedPatient}
                   patients={patients}
-                  onBack={() => setSelectedPatient(null)}
-                  onEditPatient={(p) => {
-                    setPatientToEdit(p);
-                    setIsPatientModalOpen(true);
-                  }}
+                  onBack={() => handleSafeBack(() => setSelectedPatient(null))}
+                  onEditPatient={(p) => handleOpenNewPatientModal(p)}
                   onOpenDietPlanner={handleOpenDietPlanner}
                   onPrintDietPlan={handlePrintDietPlan}
                   anamnesis={patientAnamnesis}
@@ -522,15 +658,9 @@ export function App() {
               ) : (
                 <PatientListView
                   patients={patients}
-                  onSelectPatient={(p) => setSelectedPatient(p)}
-                  onNewPatient={() => {
-                    setPatientToEdit(null);
-                    setIsPatientModalOpen(true);
-                  }}
-                  onEditPatient={(p) => {
-                    setPatientToEdit(p);
-                    setIsPatientModalOpen(true);
-                  }}
+                  onSelectPatient={handleSelectPatient}
+                  onNewPatient={() => handleOpenNewPatientModal(null)}
+                  onEditPatient={(p) => handleOpenNewPatientModal(p)}
                   onDeletePatient={handleDeletePatient}
                   onOpenDietPlanner={(p) => handleOpenDietPlanner(p)}
                 />
@@ -548,7 +678,15 @@ export function App() {
               onSavePlan={handleSaveDietPlan}
               onPrintPlan={handlePrintDietPlan}
               onSelectPatientChange={(p) => setSelectedPatient(p)}
-              onBack={() => setCurrentTab('patients')}
+              onBack={() =>
+                handleSafeBack(() => {
+                  if (selectedPatient) {
+                    setCurrentTab('patients');
+                  } else {
+                    setCurrentTab('dashboard');
+                  }
+                })
+              }
             />
           )}
 
@@ -558,21 +696,11 @@ export function App() {
               appointments={appointments}
               patients={patients}
               clinicProfile={clinicProfile}
-              onNewAppointment={(initialDate) => {
-                setAppointmentToEdit(null);
-                setAppointmentInitialDate(initialDate);
-                setIsAppointmentModalOpen(true);
-              }}
-              onEditAppointment={(apt) => {
-                setAppointmentToEdit(apt);
-                setIsAppointmentModalOpen(true);
-              }}
+              onNewAppointment={(initialDate) => handleOpenAppointmentModal(null, initialDate)}
+              onEditAppointment={(apt) => handleOpenAppointmentModal(apt)}
               onDeleteAppointment={handleDeleteAppointment}
               onUpdateStatus={handleUpdateAppointmentStatus}
-              onSelectPatient={(p) => {
-                setSelectedPatient(p);
-                setCurrentTab('patients');
-              }}
+              onSelectPatient={handleSelectPatient}
             />
           )}
 
@@ -610,28 +738,21 @@ export function App() {
         clinicProfile={clinicProfile}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onNewPatient={() => {
-          setPatientToEdit(null);
-          setIsPatientModalOpen(true);
-        }}
-        onNewAppointment={() => {
-          setAppointmentToEdit(null);
-          setAppointmentInitialDate(undefined);
-          setIsAppointmentModalOpen(true);
-        }}
+        onNewPatient={() => handleOpenNewPatientModal(null)}
+        onNewAppointment={() => handleOpenAppointmentModal(null)}
       />
 
       {/* GLOBAL MODALS */}
       <PatientModal
         isOpen={isPatientModalOpen}
-        onClose={() => setIsPatientModalOpen(false)}
+        onClose={() => handleSafeBack(() => setIsPatientModalOpen(false))}
         onSave={handleSavePatient}
         patientToEdit={patientToEdit}
       />
 
       <AppointmentModal
         isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
+        onClose={() => handleSafeBack(() => setIsAppointmentModalOpen(false))}
         onSave={handleSaveAppointment}
         patients={patients}
         appointmentToEdit={appointmentToEdit}
