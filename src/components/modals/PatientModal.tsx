@@ -3,10 +3,8 @@ import {
   X,
   User,
   Phone,
-  Mail,
   Calendar,
   Target,
-  Briefcase,
   FileText,
   Check,
   Upload,
@@ -30,11 +28,9 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   patientToEdit,
 }) => {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('1995-01-01');
   const [gender, setGender] = useState<Gender>('female');
-  const [occupation, setOccupation] = useState('');
   const [goal, setGoal] = useState<PatientGoal>('weight_loss');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [notes, setNotes] = useState('');
@@ -47,22 +43,18 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   useEffect(() => {
     if (patientToEdit) {
       setName(patientToEdit.name);
-      setEmail(patientToEdit.email);
       setPhone(patientToEdit.phone);
       setBirthDate(patientToEdit.birthDate);
       setGender(patientToEdit.gender);
-      setOccupation(patientToEdit.occupation || '');
       setGoal(patientToEdit.goal);
       setStatus(patientToEdit.status);
       setNotes(patientToEdit.notes || '');
       setPhotoUrl(patientToEdit.photoUrl || '');
     } else {
       setName('');
-      setEmail('');
       setPhone('');
       setBirthDate('1995-01-01');
       setGender('female');
-      setOccupation('');
       setGoal('weight_loss');
       setStatus('active');
       setNotes('');
@@ -101,11 +93,11 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       await onSave({
         id: patientToEdit?.id,
         name: name.trim(),
-        email: email.trim(),
+        email: patientToEdit?.email || '',
         phone: phone.trim(),
         birthDate,
         gender,
-        occupation: occupation.trim(),
+        occupation: patientToEdit?.occupation || '',
         goal,
         status,
         notes: notes.trim(),
@@ -161,39 +153,21 @@ export const PatientModal: React.FC<PatientModalProps> = ({
             </div>
           </div>
 
-          {/* Telefone / WhatsApp & Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                WhatsApp / Telefone *
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(11) 98765-4321"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                E-mail
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="paciente@email.com"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                />
-              </div>
+          {/* Telefone / WhatsApp */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+              WhatsApp / Telefone *
+            </label>
+            <div className="relative">
+              <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(11) 98765-4321"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              />
             </div>
           </div>
 
@@ -245,7 +219,7 @@ export const PatientModal: React.FC<PatientModalProps> = ({
             </div>
           </div>
 
-          {/* Objetivo Principal & Profissão */}
+          {/* Objetivo Principal & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
@@ -270,34 +244,17 @@ export const PatientModal: React.FC<PatientModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Profissão / Ocupação
+                Status de Atendimento
               </label>
-              <div className="relative">
-                <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={occupation}
-                  onChange={(e) => setOccupation(e.target.value)}
-                  placeholder="Ex: Arquiteta, Estudante"
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                />
-              </div>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white font-semibold"
+              >
+                <option value="active">Ativo (Em Acompanhamento)</option>
+                <option value="inactive">Inativo / Alta Nutricional</option>
+              </select>
             </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              Status de Atendimento
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
-              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white"
-            >
-              <option value="active">Ativo (Em Acompanhamento)</option>
-              <option value="inactive">Inativo / Alta Nutricional</option>
-            </select>
           </div>
 
           {/* Foto do Paciente: Upload do Arquivo OU URL */}
