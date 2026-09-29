@@ -65,6 +65,29 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
     propPatient || (patients.length > 0 ? patients[0] : null)
   );
 
+  // Searchable Patient Dropdown state
+  const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+
+  const filteredPatients = useMemo(() => {
+    if (!patientSearchQuery.trim()) return patients;
+    const q = patientSearchQuery.toLowerCase();
+    return patients.filter(
+      (p) => p.name.toLowerCase().includes(q) || (p.phone && p.phone.includes(q))
+    );
+  }, [patients, patientSearchQuery]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (patientSearchRef.current && !patientSearchRef.current.contains(e.target as Node)) {
+        setIsPatientSearchOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const [title, setTitle] = useState(
     initialPlan?.title || 'Plano Alimentar Individualizado'
   );
@@ -481,25 +504,112 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
 
         {/* Patient Selector & Primary Actions */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs">
-            <span className="font-semibold text-slate-500">Paciente:</span>
-            <select
-              value={currentPatient?.id || ''}
-              onChange={(e) => {
-                const found = patients.find((p) => p.id === e.target.value);
-                if (found) {
-                  setCurrentPatient(found);
-                  if (onSelectPatientChange) onSelectPatientChange(found);
-                }
+          {/* Patient Searchable Selector */}
+          <div className="relative" ref={patientSearchRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPatientSearchOpen(!isPatientSearchOpen);
+                setPatientSearchQuery('');
               }}
-              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+              className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-emerald-400 px-3 py-1.5 rounded-xl text-xs transition-all shadow-2xs cursor-pointer group"
+              title="Buscar e selecionar paciente"
             >
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              <Search className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="font-semibold text-slate-500">Paciente:</span>
+              <span className="font-bold text-slate-800 truncate max-w-[140px] sm:max-w-[200px]">
+                {currentPatient ? currentPatient.name : 'Selecione um paciente'}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+                  isPatientSearchOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {isPatientSearchOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-2.5 animate-in fade-in zoom-in-95 duration-150">
+                {/* Search Input with Lupa */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    autoFocus
+                    value={patientSearchQuery}
+                    onChange={(e) => setPatientSearchQuery(e.target.value)}
+                    placeholder="Buscar paciente por nome..."
+                    className="w-full pl-8 pr-7 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  />
+                  {patientSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setPatientSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Patient List */}
+                <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  {filteredPatients.length > 0 ? (
+                    filteredPatients.map((p) => {
+                      const isSelected = currentPatient?.id === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setCurrentPatient(p);
+                            if (onSelectPatientChange) onSelectPatientChange(p);
+                            setIsPatientSearchOpen(false);
+                            setPatientSearchQuery('');
+                          }}
+                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {p.photoUrl ? (
+                              <img
+                                src={p.photoUrl}
+                                alt=""
+                                className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                {p.name
+                                  .split(' ')
+                                  .map((n) => n[0])
+                                  .slice(0, 2)
+                                  .join('')
+                                  .toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate">{p.name}</p>
+                              {p.phone && (
+                                <p className="text-[10px] text-slate-400 truncate">{p.phone}</p>
+                              )}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                          )}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="py-4 text-center text-xs text-slate-400">
+                      Nenhum paciente encontrado com "{patientSearchQuery}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {currentPatient && (
