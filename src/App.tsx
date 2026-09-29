@@ -188,7 +188,14 @@ export function App() {
 
   useEffect(() => {
     if (currentUser) {
+      setPatients([]);
+      setAppointments([]);
+      setSelectedPatient(null);
       loadUserData();
+    } else {
+      setPatients([]);
+      setAppointments([]);
+      setSelectedPatient(null);
     }
   }, [currentUser, loadUserData]);
 
@@ -368,6 +375,15 @@ export function App() {
   const handleLogout = async () => {
     logoutUser();
     setCurrentUser(null);
+    setPatients([]);
+    setAppointments([]);
+    setSelectedPatient(null);
+    setPatientAnamnesis(null);
+    setPatientAnthropometry([]);
+    setPatientDietPlans([]);
+    setPatientSupplements([]);
+    setPatientPhotos([]);
+    setAllSupplementsMap({});
     try {
       if (clerkSignOut) {
         await clerkSignOut();

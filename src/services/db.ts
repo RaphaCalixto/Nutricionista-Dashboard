@@ -101,6 +101,35 @@ export async function checkSupabaseConnection(): Promise<{ connected: boolean; m
   }
 }
 
+// Helper to extract and encode user ownership in metadata
+export interface UserRecordMetadata {
+  ownerId: string;
+  notes?: string;
+}
+
+export function encodeUserMetadata(userId: string, rawNotes?: string | null): string {
+  const payload: UserRecordMetadata = {
+    ownerId: userId,
+    notes: rawNotes || '',
+  };
+  return `__NUTRI_META__${JSON.stringify(payload)}`;
+}
+
+export function decodeUserMetadata(rawNotes?: string | null): { ownerId: string | null; cleanNotes: string } {
+  if (!rawNotes) return { ownerId: null, cleanNotes: '' };
+  if (typeof rawNotes === 'string' && rawNotes.startsWith('__NUTRI_META__')) {
+    try {
+      const jsonStr = rawNotes.substring('__NUTRI_META__'.length);
+      const parsed = JSON.parse(jsonStr) as UserRecordMetadata;
+      return {
+        ownerId: parsed.ownerId || null,
+        cleanNotes: parsed.notes || '',
+      };
+    } catch (e) {}
+  }
+  return { ownerId: null, cleanNotes: rawNotes };
+}
+
 // ==================== PATIENTS API ====================
 export async function getPatients(): Promise<Patient[]> {
   const userId = getActiveUserId();
@@ -113,22 +142,35 @@ export async function getPatients(): Promise<Patient[]> {
       .select('*')
       .order('name');
 
-    if (!error && data && data.length > 0) {
-      const mapped: Patient[] = data.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        email: p.email || '',
-        phone: p.phone || '',
-        birthDate: p.birth_date || '',
-        gender: p.gender || 'female',
-        occupation: p.occupation || '',
-        goal: p.goal || 'weight_loss',
-        status: p.status || 'active',
-        photoUrl: p.photo_url || '',
-        notes: p.notes || '',
-        createdAt: p.created_at || new Date().toISOString(),
-        updatedAt: p.updated_at || new Date().toISOString(),
-      }));
+    if (!error && data) {
+      // Filter strictly by the active logged-in user
+      const userPatients = data.filter((p: any) => {
+        const { ownerId } = decodeUserMetadata(p.notes);
+        // If owner is explicitly set, must match userId
+        if (ownerId) return ownerId === userId;
+        // If owner is not set (legacy row), only the default demo user sees it
+        return isDemo;
+      });
+
+      const mapped: Patient[] = userPatients.map((p: any) => {
+        const { cleanNotes } = decodeUserMetadata(p.notes);
+        return {
+          id: p.id,
+          name: p.name,
+          email: p.email || '',
+          phone: p.phone || '',
+          birthDate: p.birth_date || '',
+          gender: p.gender || 'female',
+          occupation: p.occupation || '',
+          goal: p.goal || 'weight_loss',
+          status: p.status || 'active',
+          photoUrl: p.photo_url || '',
+          notes: cleanNotes,
+          createdAt: p.created_at || new Date().toISOString(),
+          updatedAt: p.updated_at || new Date().toISOString(),
+        };
+      });
+
       setLocal(storageKey, mapped);
       return mapped;
     }
@@ -176,6 +218,7 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
   }
 
   try {
+    const encodedNotes = encodeUserMetadata(userId, savedPatient.notes);
     await supabase.from('patients').upsert({
       id: savedPatient.id,
       name: savedPatient.name,
@@ -187,7 +230,7 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
       goal: savedPatient.goal,
       status: savedPatient.status,
       photo_url: savedPatient.photoUrl || null,
-      notes: savedPatient.notes || null,
+      notes: encodedNotes,
       updated_at: savedPatient.updatedAt,
     });
   } catch (e) {}
@@ -473,23 +516,35 @@ export async function getAppointments(): Promise<Appointment[]> {
       .from('appointments')
       .select('*')
       .order('date', { ascending: true });
-    if (!error && data && data.length > 0) {
-      const mapped: Appointment[] = data.map((a: any) => ({
-        id: a.id,
-        patientId: a.patient_id,
-        patientName: a.patient_name,
-        patientPhone: a.patient_phone || '',
-        date: a.date,
-        time: a.time,
-        durationMinutes: a.duration_minutes || 60,
-        type: a.type || 'follow_up',
-        status: a.status || 'scheduled',
-        price: a.price ? Number(a.price) : 0,
-        paid: Boolean(a.paid),
-        notes: a.notes || '',
-        meetUrl: a.meet_url || '',
-        createdAt: a.created_at,
-      }));
+
+    if (!error && data) {
+      // Filter strictly by the active logged-in user
+      const userAppointments = data.filter((a: any) => {
+        const { ownerId } = decodeUserMetadata(a.notes);
+        if (ownerId) return ownerId === userId;
+        return isDemo;
+      });
+
+      const mapped: Appointment[] = userAppointments.map((a: any) => {
+        const { cleanNotes } = decodeUserMetadata(a.notes);
+        return {
+          id: a.id,
+          patientId: a.patient_id,
+          patientName: a.patient_name,
+          patientPhone: a.patient_phone || '',
+          date: a.date,
+          time: a.time,
+          durationMinutes: a.duration_minutes || 60,
+          type: a.type || 'follow_up',
+          status: a.status || 'scheduled',
+          price: a.price ? Number(a.price) : 0,
+          paid: Boolean(a.paid),
+          notes: cleanNotes,
+          meetUrl: a.meet_url || '',
+          createdAt: a.created_at,
+        };
+      });
+
       setLocal(storageKey, mapped);
       return mapped;
     }
@@ -536,6 +591,7 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
   }
 
   try {
+    const encodedNotes = encodeUserMetadata(userId, saved.notes);
     await supabase.from('appointments').upsert({
       id: saved.id,
       patient_id: isUUID(saved.patientId) ? saved.patientId : null,
@@ -548,7 +604,7 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
       status: saved.status,
       price: saved.price,
       paid: saved.paid,
-      notes: saved.notes || null,
+      notes: encodedNotes,
       meet_url: saved.meetUrl || null,
     });
   } catch (e) {}
