@@ -11,15 +11,21 @@ import {
 } from 'lucide-react';
 import { FoodItem } from '../../types';
 import { TACO_FOODS } from '../../data/tacoFoods';
-import { getCustomFoods, searchFoods } from '../../services/foodService';
+import { getCustomFoods, searchFoods, fetchCustomFoods } from '../../services/foodService';
 import { CustomFoodModal } from '../modals/CustomFoodModal';
 
 export const FoodDatabaseView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [foods, setFoods] = useState<FoodItem[]>([...TACO_FOODS, ...getCustomFoods()]);
+  const [foods, setFoods] = useState<FoodItem[]>([...getCustomFoods(), ...TACO_FOODS]);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    fetchCustomFoods().then((cf) => {
+      setFoods([...cf, ...TACO_FOODS]);
+    }).catch(() => {});
+  }, []);
 
   // Debounced search
   useEffect(() => {

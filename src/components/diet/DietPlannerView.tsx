@@ -22,8 +22,9 @@ import {
   X
 } from 'lucide-react';
 import { Patient, DietPlan, DietMeal, DietMealItem, FoodItem, EnergyCalculation } from '../../types';
-import { searchFoods, calculateItemNutrients, saveCustomFood, getCustomFoods } from '../../services/foodService';
+import { searchFoods, calculateItemNutrients, saveCustomFood, getCustomFoods, fetchCustomFoods } from '../../services/foodService';
 import { TACO_FOODS } from '../../data/tacoFoods';
+import { CustomFoodModal } from '../modals/CustomFoodModal';
 
 // Helper to guarantee "Gramas (g)" is ALWAYS the first option and other measures below
 export function getOrderedPortions(food?: FoodItem | null): { name: string; weightGrams: number }[] {
@@ -158,6 +159,12 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [isCustomFoodModalOpen, setIsCustomFoodModalOpen] = useState(false);
+
+  // Load custom foods from Supabase on mount
+  useEffect(() => {
+    fetchCustomFoods().catch(() => {});
+  }, []);
 
   // Add Item configuration
   const [itemQuantity, setItemQuantity] = useState<number>(100);
@@ -1018,19 +1025,29 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
               </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="p-4 border-b border-slate-100">
-              <div className="relative">
+            {/* Search Bar & Custom Food Trigger */}
+            <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Digite o alimento (ex: frango, arroz integral, aveia, ovo, whey, abacate, etc)..."
+                  placeholder="Digite o alimento (ex: frango frito, arroz integral, aveia, ovo, whey)..."
                   className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCustomFoodModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs"
+                title="Cadastrar receita ou modo de preparo próprio"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Criar Alimento</span>
+              </button>
             </div>
 
             {/* Search Results & Portion Config */}
@@ -1049,7 +1066,7 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedFood(null)}
-                      className="text-xs font-semibold text-emerald-700 hover:underline"
+                      className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
                     >
                       Trocar Alimento
                     </button>
@@ -1161,10 +1178,16 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
                             className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                               food.source === 'taco'
                                 ? 'bg-emerald-100 text-emerald-800'
+                                : food.source === 'custom'
+                                ? 'bg-purple-100 text-purple-800'
                                 : 'bg-blue-100 text-blue-800'
                             }`}
                           >
-                            {food.source === 'taco' ? 'TACO' : 'API'}
+                            {food.source === 'taco'
+                              ? 'TACO'
+                              : food.source === 'custom'
+                              ? 'Meu Alimento'
+                              : 'API'}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400">{food.category}</p>
@@ -1180,9 +1203,19 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
                   ))}
 
                   {searchResults.length === 0 && !searching && (
-                    <p className="text-center py-6 text-xs text-slate-400">
-                      Nenhum alimento encontrado para "{searchQuery}".
-                    </p>
+                    <div className="text-center py-6 space-y-3">
+                      <p className="text-xs text-slate-400">
+                        Nenhum alimento encontrado para "{searchQuery}".
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomFoodModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Cadastrar "{searchQuery || 'Novo Alimento'}"</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -1490,6 +1523,16 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
           </div>
         </div>
       )}
+      {/* CUSTOM FOOD MODAL */}
+      <CustomFoodModal
+        isOpen={isCustomFoodModalOpen}
+        onClose={() => setIsCustomFoodModalOpen(false)}
+        onFoodAdded={(newFood) => {
+          setIsCustomFoodModalOpen(false);
+          handleSelectFood(newFood);
+        }}
+        initialName={searchQuery}
+      />
     </div>
   );
 };

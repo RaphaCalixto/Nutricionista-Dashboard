@@ -7,14 +7,16 @@ interface CustomFoodModalProps {
   isOpen: boolean;
   onClose: () => void;
   onFoodAdded: (food: FoodItem) => void;
+  initialName?: string;
 }
 
 export const CustomFoodModal: React.FC<CustomFoodModalProps> = ({
   isOpen,
   onClose,
   onFoodAdded,
+  initialName = '',
 }) => {
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName);
   const [category, setCategory] = useState('Personalizados');
   const [calories, setCalories] = useState<number>(100);
   const [protein, setProtein] = useState<number>(0);
@@ -24,35 +26,47 @@ export const CustomFoodModal: React.FC<CustomFoodModalProps> = ({
   const [sodium, setSodium] = useState<number>(0);
   const [portionName, setPortionName] = useState('Porção (100g)');
   const [portionGrams, setPortionGrams] = useState<number>(100);
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && initialName) {
+      setName(initialName);
+    }
+  }, [isOpen, initialName]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newFood: FoodItem = {
-      id: `custom-${Date.now()}`,
-      name: name.trim(),
-      category,
-      baseQty: 100,
-      baseUnit: 'g',
-      calories: Number(calories),
-      protein: Number(protein),
-      carbs: Number(carbs),
-      fats: Number(fats),
-      fiber: Number(fiber),
-      sodium: sodium ? Number(sodium) : undefined,
-      source: 'custom',
-      commonPortions: [
-        { name: portionName, weightGrams: portionGrams },
-        { name: 'Gramas (g)', weightGrams: 1 },
-      ],
-    };
+    setSaving(true);
+    try {
+      const newFood: FoodItem = {
+        id: `custom-${Date.now()}`,
+        name: name.trim(),
+        category,
+        baseQty: 100,
+        baseUnit: 'g',
+        calories: Number(calories) || 0,
+        protein: Number(protein) || 0,
+        carbs: Number(carbs) || 0,
+        fats: Number(fats) || 0,
+        fiber: Number(fiber) || 0,
+        sodium: sodium ? Number(sodium) : undefined,
+        source: 'custom',
+        commonPortions: [
+          { name: portionName.trim() || 'Porção (100g)', weightGrams: Number(portionGrams) || 100 },
+          { name: 'Gramas (g)', weightGrams: 1 },
+        ],
+      };
 
-    saveCustomFood(newFood);
-    onFoodAdded(newFood);
-    onClose();
+      const saved = await saveCustomFood(newFood);
+      onFoodAdded(saved);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -214,10 +228,11 @@ export const CustomFoodModal: React.FC<CustomFoodModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] rounded-xl shadow-xs flex items-center gap-1.5"
+              disabled={saving}
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
               <Check className="w-4 h-4" />
-              <span>Salvar Alimento</span>
+              <span>{saving ? 'Salvando...' : 'Salvar Alimento'}</span>
             </button>
           </div>
         </form>
