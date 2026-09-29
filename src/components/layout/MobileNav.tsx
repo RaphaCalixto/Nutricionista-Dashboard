@@ -68,6 +68,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   const handleNavigate = (tab: NavTab) => {
     onSelectTab(tab);
     setIsMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
   };
 
   return (

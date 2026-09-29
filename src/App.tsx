@@ -221,10 +221,20 @@ export function App() {
     }
   }, [selectedPatient]);
 
+  // Always scroll to top when changing tabs, opening patient records, or entering planner
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [currentTab, selectedPatient, dietPlanToEdit, dietPlanToPrint]);
+
   // Handle Tab Selection
   const handleSelectTab = (tab: NavTab) => {
     setDietPlanToPrint(null);
     setCurrentTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   // Patient Actions
