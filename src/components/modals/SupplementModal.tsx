@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Pill, Plus, Check } from 'lucide-react';
 import { Supplement, Patient } from '../../types';
+import { PatientSearchSelect } from '../common/PatientSearchSelect';
 
 interface SupplementModalProps {
   isOpen: boolean;
@@ -90,17 +91,12 @@ export const SupplementModal: React.FC<SupplementModalProps> = ({
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
               Paciente *
             </label>
-            <select
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white font-bold text-slate-800"
-            >
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <PatientSearchSelect
+              patients={patients}
+              selectedPatientId={patientId}
+              onSelectPatient={(id) => setPatientId(id)}
+              placeholder="Buscar paciente cadastrado..."
+            />
           </div>
 
           <div>

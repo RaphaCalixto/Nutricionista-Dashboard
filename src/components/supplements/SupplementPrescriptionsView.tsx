@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Supplement, Patient } from '../../types';
 import { SupplementModal } from '../modals/SupplementModal';
+import { PatientSearchSelect } from '../common/PatientSearchSelect';
 import { calculateWaterRecommendation } from '../../utils/nutritionCalculations';
 
 interface SupplementPrescriptionsViewProps {
@@ -80,23 +81,21 @@ export const SupplementPrescriptionsView: React.FC<SupplementPrescriptionsViewPr
         {/* Left 2 Cols: Patient Supplements */}
         <div className="lg:col-span-2 space-y-4">
           {/* Patient Selector Filter */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-4">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <User className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-bold text-slate-700">Selecione o Paciente:</span>
             </div>
 
-            <select
-              value={selectedPatientId}
-              onChange={(e) => setSelectedPatientId(e.target.value)}
-              className="px-3 py-1.5 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-slate-50 focus:ring-2 focus:ring-emerald-500"
-            >
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-full sm:w-72">
+              <PatientSearchSelect
+                patients={patients}
+                selectedPatientId={selectedPatientId}
+                onSelectPatient={(id) => setSelectedPatientId(id)}
+                variant="filter"
+                placeholder="Buscar paciente..."
+              />
+            </div>
           </div>
 
           {/* Supplements List */}

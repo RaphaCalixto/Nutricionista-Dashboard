@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Phone, Check, DollarSign, Video } from 'lucide-react';
 import { Appointment, Patient, AppointmentType, AppointmentStatus } from '../../types';
+import { PatientSearchSelect } from '../common/PatientSearchSelect';
 
 interface AppointmentModalProps {
   isOpen: boolean;
@@ -138,21 +139,23 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
               Selecionar Paciente Cadastrado
             </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <select
-                value={selectedPatientId}
-                onChange={(e) => handlePatientSelectChange(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-white font-semibold focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">-- Outro / Paciente Novo --</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.phone})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PatientSearchSelect
+              patients={patients}
+              selectedPatientId={selectedPatientId}
+              onSelectPatient={(id, patient) => {
+                setSelectedPatientId(id);
+                if (patient) {
+                  setPatientName(patient.name);
+                  setPatientPhone(patient.phone);
+                } else if (!id) {
+                  setPatientName('');
+                  setPatientPhone('');
+                }
+              }}
+              allowCustomOrNew={true}
+              customOptionLabel="-- Outro / Paciente Novo --"
+              placeholder="Buscar paciente por nome ou celular..."
+            />
           </div>
 
           {/* Nome e Telefone se for avulso */}
