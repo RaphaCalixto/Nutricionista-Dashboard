@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080" />
+  <title>NutriPlan Pro — Vídeo Promocional</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #0f172a;
+      color: white;
+    }
+
+    /* ===== SCENES ===== */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+    .scene.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ===== SCENE 1: PROBLEMA ===== */
+    .scene-1 { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+    .scene-1 .pain-text {
+      font-size: 52px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.4;
+      max-width: 1200px;
+      color: #e2e8f0;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeUp 0.8s ease forwards;
+    }
+    .scene-1 .pain-text em {
+      color: #f87171;
+      font-style: normal;
+      text-decoration: line-through;
+      text-decoration-color: #f8717180;
+      text-decoration-thickness: 3px;
+    }
+    .scene-1 .pain-icons {
+      display: flex;
+      gap: 60px;
+      margin-top: 50px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.5s forwards;
+    }
+    .scene-1 .pain-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .scene-1 .pain-icon .icon-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 20px;
+      background: #1e293b;
+      border: 2px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      position: relative;
+    }
+    .scene-1 .pain-icon .icon-circle::after {
+      content: '✕';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 28px;
+      height: 28px;
+      background: #ef4444;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .scene-1 .pain-icon span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    /* ===== SCENE 2: LOGO ===== */
+    .scene-2 { background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%); }
+    .scene-2 .logo-container {
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.8);
+      animation: zoomIn 0.8s ease forwards;
+    }
+    .scene-2 .logo-icon {
+      width: 120px;
+      height: 120px;
+      background: white;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 30px;
+      font-size: 60px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .scene-2 h1 {
+      font-size: 80px;
+      font-weight: 900;
+      letter-spacing: -2px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .scene-2 .tagline {
+      font-size: 26px;
+      font-weight: 600;
+      margin-top: 12px;
+      opacity: 0.9;
+    }
+    .scene-2 .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 8px 24px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 30px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ===== SCENE 3: FEATURES ===== */
+    .scene-3 { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 80px; }
+    .scene-3 .feature-header {
+      text-align: center;
+      margin-bottom: 60px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .scene-3 .feature-header h2 {
+      font-size: 44px;
+      font-weight: 900;
+      color: #10b981;
+    }
+    .scene-3 .feature-header p {
+      font-size: 20px;
+      color: #94a3b8;
+      margin-top: 8px;
+    }
+    .scene-3 .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      max-width: 1600px;
+      width: 100%;
+    }
+    .scene-3 .feature-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 40px 30px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .scene-3 .feature-card:nth-child(1) { animation: fadeUp 0.5s ease 0.2s forwards; }
+    .scene-3 .feature-card:nth-child(2) { animation: fadeUp 0.5s ease 0.35s forwards; }
+    .scene-3 .feature-card:nth-child(3) { animation: fadeUp 0.5s ease 0.5s forwards; }
+    .scene-3 .feature-card:nth-child(4) { animation: fadeUp 0.5s ease 0.65s forwards; }
+    .scene-3 .feature-card:nth-child(5) { animation: fadeUp 0.5s ease 0.8s forwards; }
+    .scene-3 .feature-card:nth-child(6) { animation: fadeUp 0.5s ease 0.95s forwards; }
+    .scene-3 .feature-card .card-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+    .scene-3 .feature-card h3 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #f1f5f9;
+    }
+    .scene-3 .feature-card p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .card-icon.green { background: linear-gradient(135deg, #059669, #10b981); }
+    .card-icon.blue { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .card-icon.purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+    .card-icon.orange { background: linear-gradient(135deg, #ea580c, #f97316); }
+    .card-icon.teal { background: linear-gradient(135deg, #0d9488, #14b8a6); }
+    .card-icon.pink { background: linear-gradient(135deg, #db2777, #ec4899); }
+
+    /* ===== SCENE 4: PRINT SHOWCASE ===== */
+    .scene-4 { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 60px; }
+    .scene-4 .showcase-label {
+      position: absolute;
+      top: 60px;
+      left: 80px;
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    .scene-4 .showcase-label span {
+      background: #10b981;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .scene-4 .showcase-title {
+      position: absolute;
+      top: 110px;
+      left: 80px;
+      font-size: 40px;
+      font-weight: 900;
+      color: #f1f5f9;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.2s forwards;
+    }
+    .scene-4 .print-frame {
+      width: 1400px;
+      height: 780px;
+      background: #334155;
+      border-radius: 20px;
+      border: 3px solid #475569;
+      margin-top: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 24px;
+      font-weight: 600;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.4s forwards;
+    }
+    .scene-4 .print-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 17px;
+    }
+    .scene-4 .print-frame .placeholder-text {
+      text-align: center;
+      line-height: 1.6;
+    }
+    .scene-4 .print-frame .placeholder-text .arrow {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    /* ===== SCENE 5: DIFERENCIAIS ===== */
+    .scene-5 { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+    .scene-5 .diff-title {
+      font-size: 44px;
+      font-weight: 900;
+      color: #10b981;
+      margin-bottom: 50px;
+      text-align: center;
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    .scene-5 .diff-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      max-width: 1400px;
+    }
+    .scene-5 .diff-card {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border: 1px solid #475569;
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .scene-5 .diff-card:nth-child(1) { animation: fadeUp 0.5s ease 0.3s forwards; }
+    .scene-5 .diff-card:nth-child(2) { animation: fadeUp 0.5s ease 0.45s forwards; }
+    .scene-5 .diff-card:nth-child(3) { animation: fadeUp 0.5s ease 0.6s forwards; }
+    .scene-5 .diff-card:nth-child(4) { animation: fadeUp 0.5s ease 0.75s forwards; }
+    .scene-5 .diff-card .diff-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    .scene-5 .diff-card h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+    }
+    .scene-5 .diff-card p {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* ===== SCENE 6: CTA ===== */
+    .scene-6 { background: linear-gradient(135deg, #047857, #059669, #0d9488); }
+    .scene-6 .cta-container {
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.9);
+      animation: zoomIn 0.8s ease forwards;
+    }
+    .scene-6 .cta-logo-icon {
+      width: 100px;
+      height: 100px;
+      background: white;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 30px;
+      font-size: 50px;
+      box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+    }
+    .scene-6 h2 {
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .scene-6 .url {
+      font-size: 36px;
+      font-weight: 800;
+      margin-top: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      padding: 16px 50px;
+      border-radius: 60px;
+      display: inline-block;
+    }
+    .scene-6 .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 30px;
+      background: white;
+      color: #047857;
+      font-size: 22px;
+      font-weight: 800;
+      padding: 18px 50px;
+      border-radius: 60px;
+      border: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .scene-6 .final-tagline {
+      margin-top: 40px;
+      font-size: 18px;
+      font-weight: 600;
+      opacity: 0.85;
+      font-style: italic;
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      position: fixed;
+      bottom: 30px;
+      right: 40px;
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+    .controls button {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+    .controls button:hover { background: rgba(255,255,255,0.25); }
+    .controls button.active { background: #10b981; border-color: #10b981; }
+    .controls .counter {
+      display: flex;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .controls-hint {
+      position: fixed;
+      bottom: 30px;
+      left: 40px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      z-index: 100;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes zoomIn {
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CENA 1: PROBLEMA -->
+  <div class="scene scene-1 active" id="scene-1">
+    <p class="pain-text">
+      Você ainda monta dieta em <em>planilha</em>?<br/>
+      Agenda pacientes pelo <em>WhatsApp</em>?<br/>
+      Organiza fichas em <em>papel</em>?
+    </p>
+    <div class="pain-icons">
+      <div class="pain-icon">
+        <div class="icon-circle">📊</div>
+        <span>Planilhas</span>
+      </div>
+      <div class="pain-icon">
+        <div class="icon-circle">💬</div>
+        <span>WhatsApp</span>
+      </div>
+      <div class="pain-icon">
+        <div class="icon-circle">📝</div>
+        <span>Fichas em papel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENA 2: LOGO -->
+  <div class="scene scene-2" id="scene-2">
+    <div class="logo-container">
+      <div class="logo-icon">🥗</div>
+      <h1>NutriPlan Pro</h1>
+      <p class="tagline">Gestão inteligente para nutricionistas modernos</p>
+      <div class="badge">Sistema Completo &bull; 100% Digital</div>
+    </div>
+  </div>
+
+  <!-- CENA 3: FUNCIONALIDADES -->
+  <div class="scene scene-3" id="scene-3">
+    <div class="feature-header">
+      <h2>Tudo que você precisa em um só lugar</h2>
+      <p>Funcionalidades pensadas exclusivamente para a sua rotina clínica</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="card-icon green">📋</div>
+        <h3>Prontuário Digital</h3>
+        <p>Anamnese, antropometria, fotos de evolução e histórico completo do paciente</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon blue">🍽️</div>
+        <h3>Montador de Dietas</h3>
+        <p>Base TACO integrada com cálculo nutricional automático em tempo real</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon purple">📅</div>
+        <h3>Agenda de Consultas</h3>
+        <p>Calendário visual com status, controle financeiro e lembretes</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon orange">💊</div>
+        <h3>Suplementação</h3>
+        <p>Prescreva fórmulas manipuladas, vitaminas e suplementos esportivos</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon teal">📊</div>
+        <h3>Dashboard Inteligente</h3>
+        <p>Métricas da clínica, pacientes ativos e desempenho num único painel</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon pink">📱</div>
+        <h3>App no Celular</h3>
+        <p>Funciona como app nativo — instale pelo navegador, sem Play Store</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENA 4: PRINT SHOWCASE (Placeholder — trocar pela imagem real) -->
+  <div class="scene scene-4" id="scene-4">
+    <div class="showcase-label"><span>Preview do Sistema</span></div>
+    <div class="showcase-title">Veja o NutriPlan Pro em ação</div>
+    <div class="print-frame">
+      <!--
+        INSTRUÇÕES:
+        Substitua o conteúdo abaixo por uma <img> com o print real.
+        Exemplo: <img src="prints/03-montador-dietas.png" alt="Montador de Dietas" />
+      -->
+      <div class="placeholder-text">
+        <span class="arrow">📸</span>
+        Coloque seu print aqui<br/>
+        <small style="font-size:16px; color:#475569">
+          Substitua por: &lt;img src="prints/03-montador-dietas.png" /&gt;
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENA 5: DIFERENCIAIS -->
+  <div class="scene scene-5" id="scene-5">
+    <h2 class="diff-title">Por que NutriPlan Pro?</h2>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <div class="diff-icon">🔒</div>
+        <h3>Dados 100% Isolados</h3>
+        <p>Cada conta tem seus dados protegidos e separados. Segurança total.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">☁️</div>
+        <h3>Sincronização em Nuvem</h3>
+        <p>Seus dados salvos automaticamente e acessíveis de qualquer dispositivo.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">🔐</div>
+        <h3>Login Seguro com Google</h3>
+        <p>Autenticação profissional e rápida. Sem senhas complicadas.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">💚</div>
+        <h3>Gratuito para Começar</h3>
+        <p>Comece a usar agora mesmo sem pagar nada. Sem cartão de crédito.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENA 6: CTA -->
+  <div class="scene scene-6" id="scene-6">
+    <div class="cta-container">
+      <div class="cta-logo-icon">🥗</div>
+      <h2>Comece Agora</h2>
+      <div class="url">pacientenutri.com.br</div>
+      <br/>
+      <div class="cta-btn">✅ Começar Gratuitamente</div>
+      <p class="final-tagline">Feito por nutricionistas. Para nutricionistas.</p>
+    </div>
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="controls">
+    <div class="counter" id="counter">1 / 6</div>
+    <button onclick="prevScene()">◀ Anterior</button>
+    <button onclick="nextScene()">Próximo ▶</button>
+    <button onclick="toggleAuto()" id="autoBtn">▶ Auto (8s)</button>
+  </div>
+  <div class="controls-hint">
+    Teclas: ← → para navegar | Espaço para auto-play | Grave a tela com OBS Studio ou gravador do Windows
+  </div>
+
+  <script>
+    let current = 0;
+    const total = 6;
+    let autoInterval = null;
+
+    function showScene(index) {
+      document.querySelectorAll('.scene').forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+        // Reset animations by re-triggering
+        if (i === index) {
+          s.style.display = 'none';
+          s.offsetHeight; // force reflow
+          s.style.display = '';
+        }
+      });
+      document.getElementById('counter').textContent = `${index + 1} / ${total}`;
+    }
+
+    function nextScene() {
+      current = (current + 1) % total;
+      showScene(current);
+    }
+
+    function prevScene() {
+      current = (current - 1 + total) % total;
+      showScene(current);
+    }
+
+    function toggleAuto() {
+      const btn = document.getElementById('autoBtn');
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        btn.textContent = '▶ Auto (8s)';
+        btn.classList.remove('active');
+      } else {
+        autoInterval = setInterval(nextScene, 8000);
+        btn.textContent = '⏸ Parar';
+        btn.classList.add('active');
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextScene(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prevScene(); }
+      if (e.key === 'a') toggleAuto();
+    });
+
+    showScene(0);
+  </script>
+</body>
+</html>

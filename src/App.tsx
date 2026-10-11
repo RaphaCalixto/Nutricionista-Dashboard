@@ -84,7 +84,10 @@ export function App() {
           email,
           createdAt: session.user.created_at || new Date().toISOString(),
         };
-        setCurrentUser(userObj);
+        setCurrentUser((prev) => {
+          if (prev?.id === userObj.id) return prev;
+          return userObj;
+        });
         setCurrentSession(userObj);
       }
     });
@@ -99,7 +102,10 @@ export function App() {
           email,
           createdAt: session.user.created_at || new Date().toISOString(),
         };
-        setCurrentUser(userObj);
+        setCurrentUser((prev) => {
+          if (prev?.id === userObj.id) return prev;
+          return userObj;
+        });
         setCurrentSession(userObj);
       }
     });
@@ -178,6 +184,12 @@ export function App() {
     setClinicProfile(getClinicProfile());
     setSupabaseConnected(conn.connected);
 
+    // Keep selectedPatient reference updated with fresh data without resetting to null
+    setSelectedPatient((prev) => {
+      if (!prev) return null;
+      return pts.find((p) => p.id === prev.id) || prev;
+    });
+
     // Load supplements for all patients
     const supMap: Record<string, Supplement[]> = {};
     for (const p of pts) {
@@ -186,13 +198,23 @@ export function App() {
     setAllSupplementsMap(supMap);
   }, []);
 
+  const prevUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (currentUser) {
-      setPatients([]);
-      setAppointments([]);
-      setSelectedPatient(null);
+      const isNewUser = prevUserIdRef.current !== currentUser.id;
+      prevUserIdRef.current = currentUser.id;
+
+      if (isNewUser) {
+        setPatients([]);
+        setAppointments([]);
+        setSelectedPatient(null);
+        setDietPlanToEdit(null);
+        setDietPlanToPrint(null);
+      }
       loadUserData();
     } else {
+      prevUserIdRef.current = null;
       setPatients([]);
       setAppointments([]);
       setSelectedPatient(null);
@@ -270,6 +292,9 @@ export function App() {
     }
   }, []);
 
+  const patientsRef = useRef(patients);
+  patientsRef.current = patients;
+
   // Listen to popstate (Mobile Native Back button, Gesture back, Browser Back)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -301,7 +326,7 @@ export function App() {
         if (state.patientId) {
           setSelectedPatient((prev) => {
             if (prev?.id === state.patientId) return prev;
-            return patients.find((p) => p.id === state.patientId) || prev;
+            return patientsRef.current.find((p) => p.id === state.patientId) || prev;
           });
         } else {
           setSelectedPatient(null);
@@ -320,7 +345,7 @@ export function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [patients]);
+  }, []);
 
   // Always scroll to top when changing tabs, opening patient records, or entering planner
   useEffect(() => {
