@@ -519,103 +519,131 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
                 setIsPatientSearchOpen(!isPatientSearchOpen);
                 setPatientSearchQuery('');
               }}
-              className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-emerald-400 px-3 py-1.5 rounded-xl text-xs transition-all shadow-2xs cursor-pointer group"
+              className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition-all shadow-md shadow-emerald-600/30 border border-emerald-500 cursor-pointer group"
               title="Buscar e selecionar paciente"
             >
-              <Search className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
-              <span className="font-semibold text-slate-500">Paciente:</span>
-              <span className="font-bold text-slate-800 truncate max-w-[140px] sm:max-w-[200px]">
+              <div className="w-5 h-5 rounded-lg bg-emerald-500/80 flex items-center justify-center shrink-0">
+                <Search className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="font-semibold text-emerald-100">Paciente:</span>
+              <span className="font-black text-white truncate max-w-[140px] sm:max-w-[200px]">
                 {currentPatient ? currentPatient.name : 'Selecione um paciente'}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+                className={`w-3.5 h-3.5 text-white/80 transition-transform duration-200 shrink-0 ${
                   isPatientSearchOpen ? 'rotate-180' : ''
                 }`}
               />
             </button>
 
             {isPatientSearchOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-2.5 animate-in fade-in zoom-in-95 duration-150">
-                {/* Search Input with Lupa */}
-                <div className="relative mb-2">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    autoFocus
-                    value={patientSearchQuery}
-                    onChange={(e) => setPatientSearchQuery(e.target.value)}
-                    placeholder="Buscar paciente por nome..."
-                    className="w-full pl-8 pr-7 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
-                  />
-                  {patientSearchQuery && (
+              <>
+                {/* Mobile Backdrop */}
+                <div
+                  className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 sm:hidden animate-fade-in"
+                  onClick={() => setIsPatientSearchOpen(false)}
+                />
+
+                {/* Patient Search Panel: Centered modal on mobile, anchored dropdown on desktop */}
+                <div className="fixed inset-x-4 top-20 max-w-sm mx-auto sm:max-w-none sm:mx-0 sm:inset-auto sm:absolute sm:left-0 sm:top-full sm:mt-1.5 sm:w-80 bg-white rounded-2xl shadow-2xl sm:shadow-xl border border-slate-200 z-50 p-3 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Mobile Header */}
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 sm:hidden">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                        <Search className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">Selecionar Paciente</span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setPatientSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      onClick={() => setIsPatientSearchOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </button>
-                  )}
-                </div>
+                  </div>
 
-                {/* Patient List */}
-                <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                  {filteredPatients.length > 0 ? (
-                    filteredPatients.map((p) => {
-                      const isSelected = currentPatient?.id === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setCurrentPatient(p);
-                            if (onSelectPatientChange) onSelectPatientChange(p);
-                            setIsPatientSearchOpen(false);
-                            setPatientSearchQuery('');
-                          }}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold'
-                              : 'hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {p.photoUrl ? (
-                              <img
-                                src={p.photoUrl}
-                                alt=""
-                                className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200"
-                              />
-                            ) : (
-                              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
-                                {p.name
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .slice(0, 2)
-                                  .join('')
-                                  .toUpperCase()}
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold truncate">{p.name}</p>
-                              {p.phone && (
-                                <p className="text-[10px] text-slate-400 truncate">{p.phone}</p>
+                  {/* Search Input with Lupa */}
+                  <div className="relative mb-2">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={patientSearchQuery}
+                      onChange={(e) => setPatientSearchQuery(e.target.value)}
+                      placeholder="Buscar paciente por nome..."
+                      className="w-full pl-8 pr-7 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                    />
+                    {patientSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setPatientSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Patient List */}
+                  <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                    {filteredPatients.length > 0 ? (
+                      filteredPatients.map((p) => {
+                        const isSelected = currentPatient?.id === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPatient(p);
+                              if (onSelectPatientChange) onSelectPatientChange(p);
+                              setIsPatientSearchOpen(false);
+                              setPatientSearchQuery('');
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold'
+                                : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {p.photoUrl ? (
+                                <img
+                                  src={p.photoUrl}
+                                  alt=""
+                                  className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                  {p.name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .slice(0, 2)
+                                    .join('')
+                                    .toUpperCase()}
+                                </div>
                               )}
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold truncate">{p.name}</p>
+                                {p.phone && (
+                                  <p className="text-[10px] text-slate-400 truncate">{p.phone}</p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
-                          )}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="py-4 text-center text-xs text-slate-400">
-                      Nenhum paciente encontrado com "{patientSearchQuery}"
-                    </div>
-                  )}
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="py-4 text-center text-xs text-slate-400">
+                        Nenhum paciente encontrado com "{patientSearchQuery}"
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
