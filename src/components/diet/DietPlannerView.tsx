@@ -799,44 +799,44 @@ export const DietPlannerView: React.FC<DietPlannerViewProps> = ({
 
       {/* Meals Container */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
           <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
             <span>Refeições do Plano ({meals.length})</span>
           </h3>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => handleAddMeal('Café da Manhã', '07:30')}
-              className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
             >
               + Café
             </button>
             <button
               type="button"
               onClick={() => handleAddMeal('Almoço', '12:30')}
-              className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
             >
               + Almoço
             </button>
             <button
               type="button"
               onClick={() => handleAddMeal('Lanche da Tarde', '16:30')}
-              className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
             >
               + Lanche
             </button>
             <button
               type="button"
               onClick={() => handleAddMeal('Jantar', '20:00')}
-              className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
             >
               + Jantar
             </button>
             <button
               type="button"
               onClick={() => handleAddMeal('Ceia / Pré-Sono', '22:30')}
-              className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
             >
               + Ceia
             </button>
