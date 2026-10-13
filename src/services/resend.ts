@@ -10,9 +10,6 @@ export const DEFAULT_FROM_EMAIL = 'NutriPlan Pro <suporte@pacientenutri.com.br>'
 
 const RESEND_KEY_STORAGE = 'nutriplan_resend_api_key_v1';
 
-// Built-in token decoding helper
-const BUILTIN_KEY = typeof atob === 'function' ? atob('cmVfV2t0THVZQkJfTmdLcng2M2RzZ0tZeDNRcUpuM29OZVdu') : '';
-
 export function getResendApiKey(): string {
   // 1. Check Vite environment variable
   const envKey = (import.meta as any).env?.VITE_RESEND_API_KEY;
@@ -24,8 +21,7 @@ export function getResendApiKey(): string {
   if (localKey && localKey.trim()) {
     return localKey.trim();
   }
-  // 3. Fallback to built-in key
-  return BUILTIN_KEY;
+  return '';
 }
 
 export function setResendApiKey(key: string): void {

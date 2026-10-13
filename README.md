@@ -90,18 +90,6 @@ A aplicação conta com **arquitetura híbrida**: funciona com sincronização e
 
 ---
 
-## 🔑 Credenciais de Demonstração
-
-Para testar o sistema com dados simulados pré-carregados (paciente de exemplo, anamnese, dieta montada, fotos e consultas):
-
-- **E-mail:** `lais.leal@nutriplan.com`
-- **Senha:** `123456`
-- **Nome:** `Dra. Laís Leal`
-
-*(Na tela de login, utilize o botão **"Preencher"** para autenticar com 1 clique).*
-
----
-
 ## 💻 Instalação e Execução Local
 
 ### Pré-requisitos
