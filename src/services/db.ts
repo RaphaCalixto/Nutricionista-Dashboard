@@ -137,16 +137,27 @@ export async function getPatients(): Promise<Patient[]> {
   const storageKey = getUserKey('patients', userId);
 
   try {
-    const { data, error } = await supabase
-      .from('patients')
-      .select('*')
-      .order('name');
+    let query = supabase.from('patients').select('*');
+    if (isDemo) {
+      query = query.or(`owner_id.eq.${userId},owner_id.is.null`);
+    } else {
+      query = query.eq('owner_id', userId);
+    }
+    let { data, error } = await query.order('name');
+
+    // Fallback if owner_id column does not exist yet on database
+    if (error && (error.message?.includes('owner_id') || error.code === '42703')) {
+      const fallbackRes = await supabase.from('patients').select('*').order('name');
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (!error && data) {
       // Filter strictly by the active logged-in user
       const userPatients = data.filter((p: any) => {
+        if (p.owner_id) return p.owner_id === userId;
         const { ownerId } = decodeUserMetadata(p.notes);
-        // If owner is explicitly set, must match userId
+        // If owner is explicitly set in metadata, must match userId
         if (ownerId) return ownerId === userId;
         // If owner is not set (legacy row), only the default demo user sees it
         return isDemo;
@@ -219,8 +230,9 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
 
   try {
     const encodedNotes = encodeUserMetadata(userId, savedPatient.notes);
-    await supabase.from('patients').upsert({
+    const payload: any = {
       id: savedPatient.id,
+      owner_id: userId,
       name: savedPatient.name,
       email: savedPatient.email || null,
       phone: savedPatient.phone || null,
@@ -232,7 +244,12 @@ export async function savePatient(patient: Partial<Patient> & { name: string }):
       photo_url: savedPatient.photoUrl || null,
       notes: encodedNotes,
       updated_at: savedPatient.updatedAt,
-    });
+    };
+    const { error: upsertErr } = await supabase.from('patients').upsert(payload);
+    if (upsertErr && (upsertErr.message?.includes('owner_id') || upsertErr.code === '42703')) {
+      delete payload.owner_id;
+      await supabase.from('patients').upsert(payload);
+    }
   } catch (e) {}
 
   return savedPatient;
@@ -512,14 +529,25 @@ export async function getAppointments(): Promise<Appointment[]> {
   const storageKey = getUserKey('appointments', userId);
 
   try {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .order('date', { ascending: true });
+    let query = supabase.from('appointments').select('*');
+    if (isDemo) {
+      query = query.or(`owner_id.eq.${userId},owner_id.is.null`);
+    } else {
+      query = query.eq('owner_id', userId);
+    }
+    let { data, error } = await query.order('date', { ascending: true });
+
+    // Fallback if owner_id column does not exist yet on database
+    if (error && (error.message?.includes('owner_id') || error.code === '42703')) {
+      const fallbackRes = await supabase.from('appointments').select('*').order('date', { ascending: true });
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (!error && data) {
       // Filter strictly by the active logged-in user
       const userAppointments = data.filter((a: any) => {
+        if (a.owner_id) return a.owner_id === userId;
         const { ownerId } = decodeUserMetadata(a.notes);
         if (ownerId) return ownerId === userId;
         return isDemo;
@@ -592,8 +620,9 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
 
   try {
     const encodedNotes = encodeUserMetadata(userId, saved.notes);
-    await supabase.from('appointments').upsert({
+    const payload: any = {
       id: saved.id,
+      owner_id: userId,
       patient_id: isUUID(saved.patientId) ? saved.patientId : null,
       patient_name: saved.patientName,
       patient_phone: saved.patientPhone || null,
@@ -606,7 +635,12 @@ export async function saveAppointment(appointment: Partial<Appointment> & { pati
       paid: saved.paid,
       notes: encodedNotes,
       meet_url: saved.meetUrl || null,
-    });
+    };
+    const { error: upsertErr } = await supabase.from('appointments').upsert(payload);
+    if (upsertErr && (upsertErr.message?.includes('owner_id') || upsertErr.code === '42703')) {
+      delete payload.owner_id;
+      await supabase.from('appointments').upsert(payload);
+    }
   } catch (e) {}
 
   return saved;
