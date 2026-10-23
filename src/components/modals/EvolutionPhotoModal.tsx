@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Link, Camera, Check, Trash2, Calendar, Scale, Edit2 } from 'lucide-react';
 import type { EvolutionPhoto, Patient } from '../../types';
 
-import { optimizeImage, type OptimizedImageResult } from '../../utils/imageOptimizer';
+import { optimizeImage } from '../../utils/imageOptimizer';
 
 interface EvolutionPhotoModalProps {
   isOpen: boolean;
@@ -29,7 +29,6 @@ export const EvolutionPhotoModal: React.FC<EvolutionPhotoModalProps> = ({
   const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('upload');
   const [saving, setSaving] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-  const [compressInfo, setCompressInfo] = useState<OptimizedImageResult | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,14 +39,12 @@ export const EvolutionPhotoModal: React.FC<EvolutionPhotoModalProps> = ({
       setWeight(photoToEdit.weight);
       setNotes(photoToEdit.notes || '');
       setPhotoUrl(photoToEdit.photoUrl);
-      setCompressInfo(null);
     } else {
       setDate(new Date().toISOString().split('T')[0]);
       setAngle('front');
       setWeight(defaultWeight || 76);
       setNotes('');
       setPhotoUrl('');
-      setCompressInfo(null);
     }
   }, [photoToEdit, defaultWeight, isOpen]);
 
@@ -70,7 +67,6 @@ export const EvolutionPhotoModal: React.FC<EvolutionPhotoModalProps> = ({
         quality: 0.82,
       });
       setPhotoUrl(result.dataUrl);
-      setCompressInfo(result);
     } catch (err: any) {
       alert(err.message || 'Erro ao processar imagem.');
     } finally {
@@ -215,33 +211,25 @@ export const EvolutionPhotoModal: React.FC<EvolutionPhotoModalProps> = ({
             {optimizing ? (
               <div className="p-6 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 flex flex-col items-center justify-center gap-2">
                 <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-bold text-emerald-800">Otimizando e convertendo imagem para WebP...</p>
-                <p className="text-[11px] text-emerald-600">Reduzindo tamanho mantendo nitidez visual</p>
+                <p className="text-xs font-bold text-emerald-800">Processando imagem...</p>
               </div>
             ) : photoUrl ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-emerald-200">
-                  <img
-                    src={photoUrl}
-                    alt="Preview"
-                    className="w-16 h-20 rounded-lg object-cover border border-slate-200 shrink-0"
-                  />
+                  <div className="w-16 h-20 rounded-lg bg-slate-900/5 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                    <img
+                      src={photoUrl}
+                      alt="Preview"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0 text-xs">
                     <p className="font-bold text-slate-800">{photoToEdit ? 'Foto Atual / Selecionada' : 'Foto Carregada'}</p>
-                    <p className="text-[11px] text-emerald-700 font-medium">Clique no botão abaixo para trocar se desejar</p>
-                    {compressInfo && compressInfo.wasCompressed && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 font-semibold border border-emerald-200/60 w-fit">
-                        <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                        <span>Otimizada: {compressInfo.originalFormattedSize} ➔ {compressInfo.optimizedFormattedSize} ({compressInfo.savedPercent}% menor • {compressInfo.optimizedFormat})</span>
-                      </div>
-                    )}
+                    <p className="text-[11px] text-emerald-700 font-medium">Pronta para salvar</p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setPhotoUrl('');
-                      setCompressInfo(null);
-                    }}
+                    onClick={() => setPhotoUrl('')}
                     className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
                     title="Remover e escolher outra"
                   >
@@ -286,9 +274,7 @@ export const EvolutionPhotoModal: React.FC<EvolutionPhotoModalProps> = ({
                   <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700">
                     Selecione a foto do paciente
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    Fotos de qualquer tamanho são convertidas automaticamente para WebP ultra leve (&lt; 500 KB)
-                  </span>
+                  <span className="text-[10px] text-slate-400">PNG, JPG ou JPEG</span>
                 </div>
               </div>
             ) : (

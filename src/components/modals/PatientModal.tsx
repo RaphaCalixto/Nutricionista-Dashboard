@@ -13,7 +13,7 @@ import {
   Trash2
 } from 'lucide-react';
 import type { Patient, PatientGoal, Gender } from '../../types';
-import { optimizeImage, type OptimizedImageResult } from '../../utils/imageOptimizer';
+import { optimizeImage } from '../../utils/imageOptimizer';
 
 interface PatientModalProps {
   isOpen: boolean;
@@ -39,7 +39,6 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('upload');
   const [saving, setSaving] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-  const [compressInfo, setCompressInfo] = useState<OptimizedImageResult | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +52,6 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       setStatus(patientToEdit.status);
       setNotes(patientToEdit.notes || '');
       setPhotoUrl(patientToEdit.photoUrl || '');
-      setCompressInfo(null);
     } else {
       setName('');
       setPhone('');
@@ -63,7 +61,6 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       setStatus('active');
       setNotes('');
       setPhotoUrl('');
-      setCompressInfo(null);
     }
   }, [patientToEdit, isOpen]);
 
@@ -87,7 +84,6 @@ export const PatientModal: React.FC<PatientModalProps> = ({
         quality: 0.85,
       });
       setPhotoUrl(result.dataUrl);
-      setCompressInfo(result);
     } catch (err: any) {
       alert(err.message || 'Erro ao processar imagem.');
     } finally {
@@ -310,34 +306,26 @@ export const PatientModal: React.FC<PatientModalProps> = ({
             {optimizing ? (
               <div className="p-5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 flex flex-col items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-bold text-emerald-800">Otimizando e convertendo foto...</p>
-                <p className="text-[11px] text-emerald-600">Reduzindo para WebP ultra leve</p>
+                <p className="text-xs font-bold text-emerald-800">Processando foto...</p>
               </div>
             ) : photoUrl ? (
               <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-emerald-200">
-                <img
-                  src={photoUrl}
-                  alt="Preview"
-                  className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0"
-                />
+                <div className="w-14 h-14 rounded-xl bg-slate-900/5 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                  <img
+                    src={photoUrl}
+                    alt="Preview"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-slate-800">Foto selecionada</p>
                   <p className="text-[11px] text-emerald-700 font-medium truncate">
-                    {photoUrl.startsWith('data:') ? 'Imagem carregada e pronta' : photoUrl}
+                    Foto pronta para salvar
                   </p>
-                  {compressInfo && compressInfo.wasCompressed && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 font-semibold border border-emerald-200/60 w-fit">
-                      <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                      <span>{compressInfo.originalFormattedSize} ➔ {compressInfo.optimizedFormattedSize} ({compressInfo.savedPercent}% menor • {compressInfo.optimizedFormat})</span>
-                    </div>
-                  )}
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPhotoUrl('');
-                    setCompressInfo(null);
-                  }}
+                  onClick={() => setPhotoUrl('')}
                   className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                   title="Remover foto"
                 >
@@ -364,9 +352,7 @@ export const PatientModal: React.FC<PatientModalProps> = ({
                   <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700">
                     Clique para escolher uma foto do computador ou celular
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    Convertida automaticamente para WebP leve (&lt; 500 KB)
-                  </span>
+                  <span className="text-[10px] text-slate-400">PNG, JPG ou JPEG</span>
                 </div>
               </div>
             ) : (
