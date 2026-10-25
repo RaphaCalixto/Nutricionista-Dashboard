@@ -13,12 +13,14 @@ import {
   Lock,
   CheckCircle2,
   RefreshCw,
-  Zap
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
   PLANS,
   activateProPlan,
+  checkAsaasPayment,
   FREE_LIMITATIONS,
   PRO_FEATURES,
   type SubscriptionStatus
@@ -31,6 +33,7 @@ interface SubscriptionModalProps {
   currentUser: User | null;
   subscriptionStatus: SubscriptionStatus;
   triggerReason?: 'limit_reached' | 'trial_expired' | 'manual';
+  initialPlan?: 'monthly' | 'annual';
   onPlanActivated?: () => void;
 }
 
@@ -40,12 +43,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   currentUser,
   subscriptionStatus,
   triggerReason = 'manual',
+  initialPlan = 'annual',
   onPlanActivated,
 }) => {
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>(initialPlan);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit_card'>('credit_card');
   const [hasOpenedCheckout, setHasOpenedCheckout] = useState(false);
-  const [isActivating, setIsActivating] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && initialPlan) {
+      setSelectedPlan(initialPlan);
+      setVerificationError(null);
+    }
+  }, [isOpen, initialPlan]);
 
   if (!isOpen) return null;
 
@@ -56,25 +68,38 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     // Abre a página de checkout oficial do Asaas em nova aba
     window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
     setHasOpenedCheckout(true);
+    setVerificationError(null);
   };
 
-  const handleConfirmPlanActivation = () => {
+  const handleVerifyPayment = async () => {
     if (!currentUser) return;
-    setIsActivating(true);
+    setIsVerifying(true);
+    setVerificationError(null);
 
-    setTimeout(() => {
-      setIsActivating(false);
-      activateProPlan(currentUser, selectedPlan);
-      try {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch (e) {}
-      if (onPlanActivated) onPlanActivated();
-      onClose();
-    }, 800);
+    try {
+      const res = await checkAsaasPayment(currentUser.email);
+      if (res.paid) {
+        activateProPlan(currentUser, res.plan || selectedPlan, res.paymentId);
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {}
+        if (onPlanActivated) onPlanActivated();
+        onClose();
+      } else {
+        setVerificationError(
+          res.message ||
+          `Nenhum pagamento confirmado foi localizado no Asaas para o e-mail ${currentUser.email}. Se você já pagou via Pix ou Cartão, aguarde alguns instantes e tente novamente.`
+        );
+      }
+    } catch (e) {
+      setVerificationError('Erro ao consultar o Asaas. Verifique sua conexão e tente novamente.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   return (
@@ -332,26 +357,40 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
             {/* Alerta quando o usuário já abriu o checkout */}
             {hasOpenedCheckout && (
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 text-xs text-slate-700 space-y-2 animate-in fade-in">
-                <div className="flex items-center gap-2 font-bold text-emerald-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>A página de pagamento do Asaas foi aberta em uma nova aba!</span>
+              <div className="space-y-3 animate-in fade-in">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 text-xs text-slate-700 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>A página de checkout do Asaas foi aberta em uma nova aba!</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    1. Conclua o pagamento por Pix ou Cartão de Crédito na tela oficial do Asaas.<br />
+                    2. Assim que o pagamento for concluído no seu banco, clique em <strong>Verificar Pagamento no Asaas</strong> abaixo para validar e desbloquear seu Pro imediatamente.
+                  </p>
+                  <div className="pt-1 flex items-center gap-3">
+                    <a
+                      href={checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-700 hover:text-emerald-800 text-[11px] font-bold underline flex items-center gap-1"
+                    >
+                      <span>Não abriu a página? Clique aqui para abrir novamente</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-600">
-                  1. Conclua o pagamento por Pix ou Cartão na aba do Asaas.<br />
-                  2. Assim que concluir, clique no botão abaixo para ativar seu acesso Pro imediatamente.
-                </p>
-                <div className="pt-1 flex items-center gap-3">
-                  <a
-                    href={checkoutUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-700 hover:text-emerald-800 text-[11px] font-bold underline flex items-center gap-1"
-                  >
-                    <span>Não abriu a página? Clique aqui para abrir novamente</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+
+                {verificationError && (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1.5 animate-in fade-in">
+                    <div className="flex items-center gap-2 font-bold text-rose-900">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Pagamento ainda não localizado</span>
+                    </div>
+                    <p className="text-[11px] text-rose-700 leading-relaxed">
+                      {verificationError}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -376,7 +415,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 onClick={handleOpenCheckout}
                 className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Ir para Checkout Asaas</span>
+                <span>Ir para Checkout Seguro Asaas</span>
                 <ExternalLink className="w-4 h-4" />
               </button>
             ) : (
@@ -392,19 +431,19 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmPlanActivation}
-                  disabled={isActivating}
-                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  onClick={handleVerifyPayment}
+                  disabled={isVerifying}
+                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  {isActivating ? (
+                  {isVerifying ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Ativando Plano Pro...</span>
+                      <span>Consultando Asaas...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4" />
-                      <span>Concluí o Pagamento (Ativar Pro)</span>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Verificar Pagamento no Asaas</span>
                     </>
                   )}
                 </button>

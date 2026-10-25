@@ -21,7 +21,7 @@ import { AuthView } from './components/auth/AuthView';
 import { PatientModal } from './components/modals/PatientModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
-import { getSubscriptionStatus, activateProPlan } from './services/subscription';
+import { getSubscriptionStatus, activateProPlan, checkAsaasPayment } from './services/subscription';
 import confetti from 'canvas-confetti';
 
 import type {
@@ -195,6 +195,7 @@ export function App() {
 
   // Subscription & Trial state
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionModalPlan, setSubscriptionModalPlan] = useState<'monthly' | 'annual'>('annual');
   const [subscriptionTriggerReason, setSubscriptionTriggerReason] = useState<'limit_reached' | 'trial_expired' | 'manual'>('manual');
 
   // Load active user's data
@@ -235,21 +236,31 @@ export function App() {
     loadUserData();
   };
 
-  // Detecção de retorno automático do Asaas (?payment=success ou ?asaas=success)
+  // Detecção de retorno do Asaas com verificação real de pagamento (?payment=success ou ?payment_id=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('payment') === 'success' || params.get('asaas') === 'success') {
+    const paymentParam = params.get('payment');
+    const asaasParam = params.get('asaas');
+    const paymentId = params.get('payment_id') || params.get('id');
+
+    if (paymentParam === 'success' || asaasParam === 'success' || paymentId) {
       if (currentUser) {
-        activateProPlan(currentUser, 'annual');
-        handlePlanActivated();
-        try {
-          confetti({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.6 }
-          });
-        } catch (e) {}
         window.history.replaceState({}, document.title, window.location.pathname);
+        checkAsaasPayment(currentUser.email, paymentId || undefined).then((res) => {
+          if (res.paid) {
+            activateProPlan(currentUser, res.plan || 'annual', res.paymentId);
+            handlePlanActivated();
+            try {
+              confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 }
+              });
+            } catch (e) {}
+          } else {
+            console.warn('Retorno do Asaas detectado, mas pagamento não confirmado:', res.message);
+          }
+        });
       }
     }
   }, [currentUser]);
@@ -961,8 +972,9 @@ export function App() {
               supabaseConnected={supabaseConnected}
               onCheckConnection={handleCheckConnection}
               subscriptionStatus={subscriptionStatus}
-              onOpenSubscriptionModal={() => {
+              onOpenSubscriptionModal={(plan?: 'monthly' | 'annual') => {
                 setSubscriptionTriggerReason('manual');
+                setSubscriptionModalPlan(plan || 'annual');
                 setIsSubscriptionModalOpen(true);
               }}
               onPlanActivated={handlePlanActivated}
@@ -1006,6 +1018,7 @@ export function App() {
         currentUser={currentUser}
         subscriptionStatus={subscriptionStatus}
         triggerReason={subscriptionTriggerReason}
+        initialPlan={subscriptionModalPlan}
         onPlanActivated={handlePlanActivated}
       />
     </div>

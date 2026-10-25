@@ -231,6 +231,66 @@ export function activateProPlan(user: User, plan: 'monthly' | 'annual', paymentI
   return record;
 }
 
+export interface VerifyPaymentResult {
+  paid: boolean;
+  message?: string;
+  plan?: 'monthly' | 'annual';
+  paymentId?: string;
+  value?: number;
+}
+
+/**
+ * Consulta o servidor e a API do Asaas para validar se existe um pagamento real confirmado
+ */
+export async function checkAsaasPayment(userEmail: string, paymentId?: string): Promise<VerifyPaymentResult> {
+  try {
+    const params = new URLSearchParams();
+    if (userEmail) params.set('email', userEmail.trim());
+    if (paymentId) params.set('payment_id', paymentId.trim());
+
+    const response = await fetch(`/api/verify-payment.php?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+  } catch (err) {
+    console.warn('Erro ao verificar status de pagamento:', err);
+  }
+
+  return {
+    paid: false,
+    message: 'Nenhum pagamento confirmado foi localizado no Asaas para este e-mail ainda.',
+  };
+}
+
+/**
+ * Cancela o plano Pro do usuário, retornando-o ao plano Gratuito
+ */
+export function cancelProPlan(user: User): SubscriptionRecord {
+  const current = getStoredSubscription(user.id);
+  const now = new Date();
+
+  const record: SubscriptionRecord = {
+    userId: user.id,
+    userEmail: user.email,
+    status: 'canceled',
+    plan: 'free',
+    expiresAt: now.toISOString(),
+    createdAt: current?.createdAt || now.toISOString(),
+    updatedAt: now.toISOString(),
+  };
+
+  saveStoredSubscription(record);
+  return record;
+}
+
 // ==================== COUPONS SYSTEM ====================
 
 export interface CouponDefinition {
