@@ -16,7 +16,13 @@ import {
   Zap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { PLANS, activateProPlan, type SubscriptionStatus } from '../../services/subscription';
+import {
+  PLANS,
+  activateProPlan,
+  FREE_LIMITATIONS,
+  PRO_FEATURES,
+  type SubscriptionStatus
+} from '../../services/subscription';
 import type { User } from '../../types';
 
 interface SubscriptionModalProps {
@@ -196,18 +202,44 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             </div>
           </div>
 
-          {/* Vantagens Inclusas */}
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              O que você terá acesso:
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
-              {currentPlanDetails.features.map((feat, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{feat}</span>
+          {/* Comparativo de Planos: Limitações do Free vs Desbloqueio Pro */}
+          <div className="space-y-2.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Comparativo de Recursos
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Limitações do Free / Teste Grátis */}
+              <div className="bg-rose-50/60 rounded-2xl p-4 border border-rose-200/80 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                  <span>Limitações do Grátis:</span>
                 </div>
-              ))}
+                <div className="space-y-2 text-xs text-rose-900/85">
+                  {FREE_LIMITATIONS.map((lim, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-rose-500 font-bold shrink-0">✕</span>
+                      <span className="leading-tight">{lim}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vantagens do Plano Pro (Iguais no Mensal e Anual) */}
+              <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-300/80 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  <Crown className="w-3.5 h-3.5 text-amber-500 fill-current shrink-0" />
+                  <span>Desbloqueado no Pro:</span>
+                </div>
+                <div className="space-y-2 text-xs text-emerald-950">
+                  {PRO_FEATURES.map((feat, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 font-bold shrink-0 mt-0.5" />
+                      <span className="leading-tight">{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

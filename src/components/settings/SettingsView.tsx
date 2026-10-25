@@ -448,6 +448,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </span>
             </div>
           </div>
+
+          {!subscriptionStatus.isPro && (
+            <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-xs text-amber-900 space-y-1">
+              <span className="font-bold flex items-center gap-1.5 text-amber-800">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Limitações do Período de Testes (Plano Gratuito):</span>
+              </span>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-800/90 pl-1">
+                <li>Limite máximo de 5 pacientes cadastrados (atualmente: {subscriptionStatus.currentPatientCount}/5).</li>
+                <li>Duração de 14 dias a partir da criação da sua conta ({subscriptionStatus.daysRemaining} dias restantes).</li>
+                <li>Ao término dos 14 dias ou ao atingir 5 pacientes, o cadastro de novos pacientes é travado até o upgrade para o Pro.</li>
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

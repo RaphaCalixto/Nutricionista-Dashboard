@@ -20,6 +20,25 @@ export interface PlanDetails {
   features: string[];
 }
 
+export const PRO_FEATURES: string[] = [
+  'Pacientes e prontuários 100% ilimitados',
+  'Montador e exportador de dietas ilimitado',
+  'Fotos de evolução antes & depois sem limite',
+  'Histórico completo de consultas, anamneses e antropometria',
+  'Prescrições e suplementação personalizada',
+  'Exportação de dietas em PDF profissional e envio no WhatsApp',
+  'Todas as atualizações e novos recursos inclusos',
+  'Suporte prioritário via WhatsApp',
+];
+
+export const FREE_LIMITATIONS: string[] = [
+  'Limite máximo de até 5 pacientes cadastrados',
+  'Válido por 14 dias de teste',
+  'Bloqueio para adicionar novos pacientes após 14 dias ou ao atingir 5 pacientes',
+  'Fotos de evolução antes & depois limitadas',
+  'Suporte padrão por e-mail',
+];
+
 export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
   monthly: {
     id: 'monthly',
@@ -28,14 +47,7 @@ export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
     period: '/mês',
     billingText: 'Cobrado mensalmente • Cancele quando quiser',
     checkoutUrl: 'https://www.asaas.com/000/c/ufjxf9iqw8n414ay',
-    features: [
-      'Pacientes ilimitados',
-      'Montador e exportador de dietas ilimitado',
-      'Fotos de evolução antes & depois sem limite',
-      'Histórico de consultas e prescrições',
-      'Exportação de dietas em PDF profissional e WhatsApp',
-      'Suporte prioritário via WhatsApp'
-    ]
+    features: PRO_FEATURES,
   },
   annual: {
     id: 'annual',
@@ -46,14 +58,7 @@ export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
     badge: '33% de Desconto',
     savings: 'Economize R$ 120/ano',
     checkoutUrl: 'https://www.asaas.com/000/c/ke0734296euml8he',
-    features: [
-      'Tudo do Plano Mensal',
-      'Pacientes e prontuários 100% ilimitados',
-      '33% de desconto comparado ao mensal',
-      'Parcelamento em até 12x no cartão de crédito',
-      'Acesso garantido a todas as novas funções',
-      'Selo Nutricionista Pro Verificado'
-    ]
+    features: PRO_FEATURES,
   }
 };
 
@@ -106,6 +111,26 @@ export function saveStoredSubscription(record: SubscriptionRecord): void {
   }
 }
 
+export function getTrialStartDate(user: User): Date {
+  const key = `nutriplan_trial_start_${user.id}`;
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const parsed = new Date(stored);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+
+  const d = user.createdAt ? new Date(user.createdAt) : new Date();
+  const valid = !isNaN(d.getTime()) ? d : new Date();
+  try {
+    localStorage.setItem(key, valid.toISOString());
+  } catch (e) {}
+  return valid;
+}
+
 /**
  * Calcula o status em tempo real da assinatura ou período de teste do usuário
  */
@@ -154,8 +179,8 @@ export function getSubscriptionStatus(user: User | null, patientCount: number): 
     }
   }
 
-  // Cálculo do período de Trial (14 dias a partir de user.createdAt)
-  const createdDate = user.createdAt ? new Date(user.createdAt) : new Date();
+  // Cálculo do período de Trial (14 dias a partir da criação da conta)
+  const createdDate = getTrialStartDate(user);
   const now = new Date();
   const diffMs = now.getTime() - createdDate.getTime();
   const daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
