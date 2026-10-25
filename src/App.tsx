@@ -17,7 +17,7 @@ import { AuthView } from './components/auth/AuthView';
 import { PatientModal } from './components/modals/PatientModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
-import { getSubscriptionStatus } from './services/subscription';
+import { getSubscriptionStatus, activateProPlan } from './services/subscription';
 import confetti from 'canvas-confetti';
 
 import type {
@@ -215,6 +215,25 @@ export function App() {
     setSubscriptionRefreshKey((k) => k + 1);
     loadUserData();
   };
+
+  // Detecção de retorno automático do Asaas (?payment=success ou ?asaas=success)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success' || params.get('asaas') === 'success') {
+      if (currentUser) {
+        activateProPlan(currentUser, 'annual');
+        handlePlanActivated();
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {}
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [currentUser]);
 
   const prevUserIdRef = useRef<string | null>(null);
 

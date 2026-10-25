@@ -16,6 +16,7 @@ export interface PlanDetails {
   billingText: string;
   badge?: string;
   savings?: string;
+  checkoutUrl: string;
   features: string[];
 }
 
@@ -26,6 +27,7 @@ export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
     price: 29.90,
     period: '/mês',
     billingText: 'Cobrado mensalmente • Cancele quando quiser',
+    checkoutUrl: 'https://www.asaas.com/000/c/ufjxf9iqw8n414ay',
     features: [
       'Pacientes ilimitados',
       'Montador e exportador de dietas ilimitado',
@@ -43,6 +45,7 @@ export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
     billingText: 'Equivale a apenas R$ 19,90/mês • Em até 12x no cartão',
     badge: '33% de Desconto',
     savings: 'Economize R$ 120/ano',
+    checkoutUrl: 'https://www.asaas.com/000/c/ke0734296euml8he',
     features: [
       'Tudo do Plano Mensal',
       'Pacientes e prontuários 100% ilimitados',
