@@ -11,11 +11,15 @@ import {
   ChevronRight,
   LogOut,
   Download,
-  Sparkles
+  Sparkles,
+  Crown,
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import { usePWAInstall } from '../../services/pwa';
 import { InstallAppModal } from '../modals/InstallAppModal';
 import type { ClinicProfile, User } from '../../types';
+import type { SubscriptionStatus } from '../../services/subscription';
 
 export type NavTab = 
   | 'dashboard' 
@@ -34,6 +38,8 @@ interface SidebarProps {
   onLogout?: () => void;
   supabaseConnected?: boolean;
   onOpenSqlModal?: () => void;
+  subscriptionStatus?: SubscriptionStatus;
+  onOpenSubscriptionModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,6 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   clinicProfile,
   currentUser,
   onLogout,
+  subscriptionStatus,
+  onOpenSubscriptionModal,
 }) => {
   const { isInstallable, installPWA, isInstalled } = usePWAInstall();
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
@@ -146,6 +154,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
       />
+
+      {/* Subscription Card */}
+      {subscriptionStatus && (
+        <div className="pt-2">
+          {subscriptionStatus.isPro ? (
+            <div className="mx-3 mb-2 p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-300/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center shadow-xs">
+                  <Crown className="w-3.5 h-3.5 fill-current" />
+                </div>
+                <span className="text-xs font-black text-amber-900">NutriPlan PRO</span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-100/70 px-1.5 py-0.5 rounded">Ativo</span>
+            </div>
+          ) : subscriptionStatus.isExpired ? (
+            <div
+              onClick={onOpenSubscriptionModal}
+              className="mx-3 mb-2 p-3 rounded-2xl bg-rose-50 border border-rose-200 hover:border-rose-300 transition-all cursor-pointer shadow-2xs group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Teste Encerrado</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-rose-600 mb-2">Desbloqueie pacientes e dietas ilimitadas.</p>
+              <button
+                type="button"
+                className="w-full py-1.5 bg-rose-600 group-hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
+              >
+                Ativar NutriPlan Pro
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={onOpenSubscriptionModal}
+              className="mx-3 mb-2 p-3 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-50 border border-emerald-200/80 hover:border-emerald-300 transition-all cursor-pointer shadow-2xs group"
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
+                  <span>Teste Gratuito</span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                  {subscriptionStatus.daysRemaining}d restantes
+                </span>
+              </div>
+
+              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mb-2">
+                <div
+                  className="bg-emerald-600 h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (subscriptionStatus.currentPatientCount / 5) * 100)}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">{subscriptionStatus.currentPatientCount}/5 pacientes</span>
+                <span className="text-emerald-700 font-bold group-hover:underline flex items-center gap-0.5">
+                  <span>Assinar Pro</span>
+                  <ChevronRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* User Mini Profile & Logout */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUser, useClerk, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { Sidebar } from './components/layout/Sidebar';
 import type { NavTab } from './components/layout/Sidebar';
@@ -16,6 +16,8 @@ import { SettingsView } from './components/settings/SettingsView';
 import { AuthView } from './components/auth/AuthView';
 import { PatientModal } from './components/modals/PatientModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
+import { SubscriptionModal } from './components/subscription/SubscriptionModal';
+import { getSubscriptionStatus } from './services/subscription';
 import confetti from 'canvas-confetti';
 
 import type {
@@ -172,6 +174,10 @@ export function App() {
   const [dietPlanToPrint, setDietPlanToPrint] = useState<{ patient: Patient; plan: DietPlan } | null>(null);
   const [energyCalcForPlanner, setEnergyCalcForPlanner] = useState<EnergyCalculation | null>(null);
 
+  // Subscription & Trial state
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionTriggerReason, setSubscriptionTriggerReason] = useState<'limit_reached' | 'trial_expired' | 'manual'>('manual');
+
   // Load active user's data
   const loadUserData = useCallback(async () => {
     const [pts, apts, conn] = await Promise.all([
@@ -197,6 +203,11 @@ export function App() {
     }
     setAllSupplementsMap(supMap);
   }, []);
+
+  // Realtime subscription & trial status calculation
+  const subscriptionStatus = useMemo(() => {
+    return getSubscriptionStatus(currentUser, patients.length);
+  }, [currentUser, patients.length]);
 
   const prevUserIdRef = useRef<string | null>(null);
 
@@ -388,6 +399,13 @@ export function App() {
   };
 
   const handleOpenNewPatientModal = (patient?: Patient | null) => {
+    // Se estiver adicionando um NOVO paciente, valida o limite do trial (5 pacientes) e dias restantes
+    if (!patient && !subscriptionStatus.canAddPatient) {
+      setSubscriptionTriggerReason(subscriptionStatus.isExpired ? 'trial_expired' : 'limit_reached');
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
+
     setPatientToEdit(patient || null);
     setIsPatientModalOpen(true);
     pushNavState({
@@ -627,6 +645,11 @@ export function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         supabaseConnected={supabaseConnected}
+        subscriptionStatus={subscriptionStatus}
+        onOpenSubscriptionModal={() => {
+          setSubscriptionTriggerReason('manual');
+          setIsSubscriptionModalOpen(true);
+        }}
       />
 
       {/* Main Content Area */}
@@ -635,6 +658,11 @@ export function App() {
         <Navbar
           onNewPatient={() => handleOpenNewPatientModal(null)}
           onNewAppointment={() => handleOpenAppointmentModal(null)}
+          subscriptionStatus={subscriptionStatus}
+          onOpenSubscriptionModal={() => {
+            setSubscriptionTriggerReason('manual');
+            setIsSubscriptionModalOpen(true);
+          }}
         />
 
         {/* Dynamic Page Views */}
@@ -751,6 +779,11 @@ export function App() {
               onLogout={handleLogout}
               supabaseConnected={supabaseConnected}
               onCheckConnection={handleCheckConnection}
+              subscriptionStatus={subscriptionStatus}
+              onOpenSubscriptionModal={() => {
+                setSubscriptionTriggerReason('manual');
+                setIsSubscriptionModalOpen(true);
+              }}
             />
           )}
         </main>
@@ -782,6 +815,18 @@ export function App() {
         patients={patients}
         appointmentToEdit={appointmentToEdit}
         initialDate={appointmentInitialDate}
+      />
+
+      {/* SUBSCRIPTION & TRIAL MODAL */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        currentUser={currentUser}
+        subscriptionStatus={subscriptionStatus}
+        triggerReason={subscriptionTriggerReason}
+        onPlanActivated={() => {
+          loadUserData();
+        }}
       />
     </div>
   );

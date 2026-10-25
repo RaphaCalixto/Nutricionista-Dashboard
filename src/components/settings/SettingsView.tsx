@@ -10,9 +10,14 @@ import {
   Smartphone,
   Sparkles,
   RefreshCw,
-  LogOut
+  LogOut,
+  Crown,
+  Zap,
+  AlertTriangle,
+  ArrowRight
 } from 'lucide-react';
 import type { ClinicProfile, User } from '../../types';
+import type { SubscriptionStatus } from '../../services/subscription';
 import { usePWAInstall } from '../../services/pwa';
 import { InstallAppModal } from '../modals/InstallAppModal';
 
@@ -24,6 +29,8 @@ interface SettingsViewProps {
   supabaseConnected?: boolean;
   onOpenSqlModal?: () => void;
   onCheckConnection?: () => Promise<void>;
+  subscriptionStatus?: SubscriptionStatus;
+  onOpenSubscriptionModal?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -31,6 +38,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSaveClinicProfile,
   currentUser,
   onLogout,
+  subscriptionStatus,
+  onOpenSubscriptionModal,
 }) => {
   const [nutritionistName, setNutritionistName] = useState(
     clinicProfile.nutritionistName || currentUser?.name || 'Nutricionista'
@@ -320,6 +329,74 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
       />
+
+      {/* Subscription & Plan Card */}
+      {subscriptionStatus && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center shadow-sm">
+                <Crown className="w-5 h-5 fill-current" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <span>Plano & Assinatura</span>
+                  {subscriptionStatus.isPro ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      PRO ATIVO
+                    </span>
+                  ) : subscriptionStatus.isExpired ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                      TRIAL EXPIRADO
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      TESTE GRATUITO
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {subscriptionStatus.isPro
+                    ? 'Você tem acesso irrestrito a todas as funcionalidades do NutriPlan Pro.'
+                    : `Restam ${subscriptionStatus.daysRemaining} dias de teste gratuito (${subscriptionStatus.currentPatientCount}/5 pacientes cadastrados).`}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenSubscriptionModal}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>{subscriptionStatus.isPro ? 'Ver Detalhes do Plano' : 'Fazer Upgrade para o Pro'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-slate-400 block mb-0.5">Status Atual</span>
+              <span className="font-bold text-slate-800">
+                {subscriptionStatus.isPro ? 'Plano Pro Liberado' : 'Período de Testes (Trial)'}
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-slate-400 block mb-0.5">Limite de Pacientes</span>
+              <span className="font-bold text-slate-800">
+                {subscriptionStatus.isPro ? 'Ilimitado' : `${subscriptionStatus.currentPatientCount} de 5 pacientes`}
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-slate-400 block mb-0.5">Renovação / Vencimento</span>
+              <span className="font-bold text-slate-800">
+                {subscriptionStatus.isPro
+                  ? 'Assinatura Recorrente Ativa'
+                  : `${subscriptionStatus.daysRemaining} dias restantes`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Backup Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-3">
