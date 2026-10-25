@@ -239,14 +239,37 @@ export interface VerifyPaymentResult {
   value?: number;
 }
 
+export interface VerifyPaymentOptions {
+  email?: string;
+  payerEmail?: string;
+  cpf?: string;
+  paymentId?: string;
+  name?: string;
+}
+
 /**
  * Consulta o servidor e a API do Asaas para validar se existe um pagamento real confirmado
  */
-export async function checkAsaasPayment(userEmail: string, paymentId?: string): Promise<VerifyPaymentResult> {
+export async function checkAsaasPayment(
+  userEmailOrOptions?: string | VerifyPaymentOptions,
+  paymentId?: string
+): Promise<VerifyPaymentResult> {
   try {
     const params = new URLSearchParams();
-    if (userEmail) params.set('email', userEmail.trim());
-    if (paymentId) params.set('payment_id', paymentId.trim());
+
+    if (typeof userEmailOrOptions === 'object' && userEmailOrOptions !== null) {
+      if (userEmailOrOptions.email) params.set('email', userEmailOrOptions.email.trim());
+      if (userEmailOrOptions.payerEmail) params.set('payer_email', userEmailOrOptions.payerEmail.trim());
+      if (userEmailOrOptions.cpf) params.set('cpf', userEmailOrOptions.cpf.trim());
+      if (userEmailOrOptions.paymentId) params.set('payment_id', userEmailOrOptions.paymentId.trim());
+      if (userEmailOrOptions.name) params.set('name', userEmailOrOptions.name.trim());
+    } else if (typeof userEmailOrOptions === 'string') {
+      if (userEmailOrOptions) params.set('email', userEmailOrOptions.trim());
+      if (paymentId) params.set('payment_id', paymentId.trim());
+    }
+
+    // Anti-cache param
+    params.set('_t', Date.now().toString());
 
     const response = await fetch(`/api/verify-payment.php?${params.toString()}`, {
       method: 'GET',

@@ -246,9 +246,19 @@ export function App() {
     if (paymentParam === 'success' || asaasParam === 'success' || paymentId) {
       if (currentUser) {
         window.history.replaceState({}, document.title, window.location.pathname);
-        checkAsaasPayment(currentUser.email, paymentId || undefined).then((res) => {
+        const savedPayer = (localStorage.getItem('nutriplan_payer_identifier') || '').trim();
+        const isCpf = savedPayer.replace(/\D/g, '').length >= 11;
+        const isEmail = savedPayer.includes('@');
+
+        checkAsaasPayment({
+          email: currentUser.email,
+          name: currentUser.name,
+          payerEmail: isEmail ? savedPayer : undefined,
+          cpf: isCpf ? savedPayer.replace(/\D/g, '') : undefined,
+          paymentId: paymentId || (savedPayer.startsWith('pay_') ? savedPayer : undefined),
+        }).then((res) => {
           if (res.paid) {
-            activateProPlan(currentUser, res.plan || 'annual', res.paymentId);
+            activateProPlan(currentUser, res.plan || 'monthly', res.paymentId);
             handlePlanActivated();
             try {
               confetti({
@@ -264,6 +274,53 @@ export function App() {
       }
     }
   }, [currentUser]);
+
+  // Verificação automática de pagamento em segundo plano ao carregar ou voltar o foco para a aba
+  useEffect(() => {
+    if (!currentUser || subscriptionStatus.isPro) return;
+
+    let isMounted = true;
+    const verifyInBackground = async () => {
+      try {
+        const savedPayer = (localStorage.getItem('nutriplan_payer_identifier') || '').trim();
+        const isCpf = savedPayer.replace(/\D/g, '').length >= 11;
+        const isEmail = savedPayer.includes('@');
+        const isPaymentId = savedPayer.startsWith('pay_');
+
+        const res = await checkAsaasPayment({
+          email: currentUser.email,
+          name: currentUser.name,
+          payerEmail: isEmail ? savedPayer : undefined,
+          cpf: isCpf ? savedPayer.replace(/\D/g, '') : undefined,
+          paymentId: isPaymentId ? savedPayer : undefined,
+        });
+
+        if (res.paid && isMounted) {
+          activateProPlan(currentUser, res.plan || 'monthly', res.paymentId);
+          handlePlanActivated();
+          try {
+            confetti({
+              particleCount: 120,
+              spread: 80,
+              origin: { y: 0.6 },
+            });
+          } catch (e) {}
+        }
+      } catch (err) {}
+    };
+
+    verifyInBackground();
+
+    const handleFocus = () => {
+      verifyInBackground();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentUser, subscriptionStatus.isPro]);
 
   const prevUserIdRef = useRef<string | null>(null);
 

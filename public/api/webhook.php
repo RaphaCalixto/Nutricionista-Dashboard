@@ -49,12 +49,14 @@ if (in_array($event, ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'])) {
     $paymentId = $payment['id'] ?? ('pay_' . time());
     $value = isset($payment['value']) ? (float)$payment['value'] : 0.0;
     
-    // Buscar e-mail do cliente caso disponível no payload
     $customerEmail = '';
+    $customerCpf = '';
+    $customerName = '';
     if (!empty($payment['customerEmail'])) {
         $customerEmail = strtolower(trim($payment['customerEmail']));
-    } elseif (!empty($payment['customer'])) {
-        // Tentar obter e-mail via API se necessário
+    }
+    if (!empty($payment['customer'])) {
+        // Obter dados completos do cliente via API do Asaas
         $apiKey = getenv('ASAAS_API_KEY') ?: base64_decode('JGFhY3RfcHJvZF8wMDBNemt3T0RBMk1XWTJPR00zTVdSbE1EVTJOV00zTXpKbE56Wm1OR1poWkdZNk9tUXdaREkwT1RnMExUY3dZVGd0TkRZMlppMDVZVEl6TFRZeU9URTBZV1V5WWpaa05qbzZKR0ZoWTJoZllXRTNNVEl3WW1NdE5EUmpZeTAwWWpOa0xUazRNakl0T0RKa00yWXdZMlU1Wmpoag==');
         $ch = curl_init("https://api.asaas.com/v3/customers/" . urlencode($payment['customer']));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -66,6 +68,12 @@ if (in_array($event, ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'])) {
             $custObj = json_decode($custResp, true);
             if (!empty($custObj['email'])) {
                 $customerEmail = strtolower(trim($custObj['email']));
+            }
+            if (!empty($custObj['cpfCnpj'])) {
+                $customerCpf = preg_replace('/\D/', '', $custObj['cpfCnpj']);
+            }
+            if (!empty($custObj['name'])) {
+                $customerName = trim($custObj['name']);
             }
         }
     }
@@ -79,6 +87,8 @@ if (in_array($event, ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'])) {
     $confirmed[$paymentId] = [
         'id' => $paymentId,
         'email' => $customerEmail,
+        'cpf' => $customerCpf,
+        'name' => $customerName,
         'value' => $value,
         'status' => 'CONFIRMED',
         'event' => $event,

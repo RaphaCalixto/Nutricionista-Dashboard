@@ -51,6 +51,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [hasOpenedCheckout, setHasOpenedCheckout] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [payerIdentifier, setPayerIdentifier] = useState(() => {
+    return localStorage.getItem('nutriplan_payer_identifier') || '';
+  });
 
   React.useEffect(() => {
     if (isOpen && initialPlan) {
@@ -77,7 +80,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setVerificationError(null);
 
     try {
-      const res = await checkAsaasPayment(currentUser.email);
+      const trimmed = payerIdentifier.trim();
+      const digits = trimmed.replace(/\D/g, '');
+      const isCpf = digits.length >= 11;
+      const isEmail = trimmed.includes('@');
+      const isPaymentId = trimmed.startsWith('pay_');
+
+      const res = await checkAsaasPayment({
+        email: currentUser.email,
+        name: currentUser.name,
+        payerEmail: isEmail ? trimmed : undefined,
+        cpf: isCpf ? digits : undefined,
+        paymentId: isPaymentId ? trimmed : undefined,
+      });
+
       if (res.paid) {
         activateProPlan(currentUser, res.plan || selectedPlan, res.paymentId);
         try {
@@ -92,7 +108,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       } else {
         setVerificationError(
           res.message ||
-          `Nenhum pagamento confirmado foi localizado no Asaas para o e-mail ${currentUser.email}. Se você já pagou via Pix ou Cartão, aguarde alguns instantes e tente novamente.`
+          `Nenhum pagamento confirmado foi localizado no Asaas para os dados informados. Caso tenha utilizado outro e-mail ou CPF no checkout do Asaas, preencha-o abaixo para validar.`
         );
       }
     } catch (e) {
@@ -380,6 +396,29 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   </div>
                 </div>
 
+                {/* Campo de e-mail ou CPF usado no Asaas (caso diferente do login) */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2">
+                  <label className="font-bold text-slate-800 flex items-center justify-between text-xs">
+                    <span>E-mail ou CPF informado no Asaas:</span>
+                    <span className="text-[10px] font-normal text-slate-500">Se diferente do cadastro</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={payerIdentifier}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPayerIdentifier(val);
+                      localStorage.setItem('nutriplan_payer_identifier', val.trim());
+                      setVerificationError(null);
+                    }}
+                    placeholder={currentUser?.email || "ex: seu.email@gmail.com ou CPF"}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
+                  />
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Se você utilizou outro e-mail pessoal ou CPF no formulário do Asaas, informe-o acima para localizarmos o pagamento.
+                  </p>
+                </div>
+
                 {verificationError && (
                   <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1.5 animate-in fade-in">
                     <div className="flex items-center gap-2 font-bold text-rose-900">
@@ -410,14 +449,24 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {!hasOpenedCheckout ? (
-              <button
-                type="button"
-                onClick={handleOpenCheckout}
-                className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Ir para Checkout Seguro Asaas</span>
-                <ExternalLink className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setHasOpenedCheckout(true)}
+                  className="w-full sm:w-auto px-3.5 py-2.5 text-slate-600 hover:text-emerald-700 font-bold text-xs rounded-xl hover:bg-slate-200/60 transition-all cursor-pointer"
+                  title="Se você já realizou o pagamento pelo Asaas e deseja validar"
+                >
+                  Já paguei
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenCheckout}
+                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Ir para Checkout Seguro Asaas</span>
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                 <button
