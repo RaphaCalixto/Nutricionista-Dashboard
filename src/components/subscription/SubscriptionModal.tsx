@@ -194,7 +194,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 </div>
 
                 <div className="mt-2">
-                  <span className="text-2xl font-black text-slate-900">R$ 29,90</span>
+                  <span className="text-2xl font-black text-slate-900">
+                    R$ {PLANS.monthly.price.toFixed(2).replace('.', ',')}
+                  </span>
                   <span className="text-xs text-slate-500 font-medium">/mês</span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">Sem fidelidade • Cancele quando quiser</p>
@@ -291,7 +293,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                     <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
                       {selectedPlan === 'annual'
                         ? 'Você pode parcelar o plano anual em até 12x de R$ 19,90 no cartão de crédito.'
-                        : 'Pagamento mensal de R$ 29,90 sem taxa de adesão ou fidelidade.'}
+                        : `Pagamento mensal de R$ ${PLANS.monthly.price.toFixed(2).replace('.', ',')} sem taxa de adesão ou fidelidade.`}
                       {' '}Seus dados são criptografados diretamente na infraestrutura certificada PCI-DSS do Asaas.
                     </p>
                   </div>
@@ -360,7 +362,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           <div className="text-center sm:text-left">
             <span className="text-xs text-slate-400">Total a pagar:</span>
             <div className="text-base font-extrabold text-slate-900">
-              R$ {selectedPlan === 'annual' ? '238,80' : '29,90'}
+              R$ {selectedPlan === 'annual' ? '238,80' : PLANS.monthly.price.toFixed(2).replace('.', ',')}
               <span className="text-xs font-normal text-slate-500 ml-1">
                 ({selectedPlan === 'annual' ? 'plano anual' : 'plano mensal'})
               </span>

@@ -200,7 +200,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Building className="w-5 h-5 text-emerald-600" />
-            <h3 className="font-bold text-slate-800 text-base">Dados da Nutricionista & Consultório</h3>
+            <h3 className="font-bold text-slate-800 text-base">Dados da(o) Nutricionista & Consultório</h3>
           </div>
           <span className="text-xs text-slate-400">Usado no cabeçalho dos planos e impressões</span>
         </div>
@@ -208,7 +208,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              Nome da Nutricionista *
+              Nome da(o) Nutricionista *
             </label>
             <input
               type="text"
@@ -494,7 +494,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   setCouponCode(e.target.value.toUpperCase());
                   setCouponFeedback(null);
                 }}
-                placeholder="Ex: NUTRI1MES, NUTRI3MESES, NUTRI1ANO"
+                placeholder="Digite seu cupom de acesso..."
                 className="w-full px-4 py-2.5 text-xs font-mono font-bold tracking-wider rounded-xl border border-slate-300 uppercase focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-slate-50/50"
               />
             </div>
