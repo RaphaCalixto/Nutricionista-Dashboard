@@ -8,7 +8,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Droplet
+  Droplet,
+  Printer
 } from 'lucide-react';
 import { Anamnesis, Patient } from '../../types';
 
@@ -16,12 +17,14 @@ interface AnamnesisFormProps {
   patient: Patient;
   initialAnamnesis: Anamnesis | null;
   onSave: (anamnesis: Anamnesis) => Promise<void>;
+  onPrint?: (anamnesis: Anamnesis) => void;
 }
 
 export const AnamnesisForm: React.FC<AnamnesisFormProps> = ({
   patient,
   initialAnamnesis,
   onSave,
+  onPrint,
 }) => {
   const [mainComplaint, setMainComplaint] = useState('');
   // Clinical
@@ -79,49 +82,56 @@ export const AnamnesisForm: React.FC<AnamnesisFormProps> = ({
     }
   }, [initialAnamnesis]);
 
+  const getCurrentAnamnesis = (): Anamnesis => ({
+    id: initialAnamnesis?.id || `anam-${Date.now()}`,
+    patientId: patient.id,
+    mainComplaint,
+    clinicalHistory: {
+      pathologies: pathologies.split(',').map((s) => s.trim()).filter(Boolean),
+      familyHistory: familyHistory.split(',').map((s) => s.trim()).filter(Boolean),
+      medications,
+      surgeries,
+      bowelHabits,
+    },
+    lifestyle: {
+      sleepHours,
+      stressLevel,
+      smoking,
+      alcohol,
+      physicalActivity,
+      activityFrequency,
+    },
+    dietaryHistory: {
+      waterIntakeMl,
+      preferredFoods,
+      dislikedFoods,
+      allergies: allergies.split(',').map((s) => s.trim()).filter(Boolean),
+      foodIntolerances: foodIntolerances.split(',').map((s) => s.trim()).filter(Boolean),
+      appetite,
+      recall24h,
+      weekendHabits,
+    },
+    updatedAt: new Date().toISOString(),
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSavedSuccess(false);
 
     try {
-      const data: Anamnesis = {
-        id: initialAnamnesis?.id || `anam-${Date.now()}`,
-        patientId: patient.id,
-        mainComplaint,
-        clinicalHistory: {
-          pathologies: pathologies.split(',').map((s) => s.trim()).filter(Boolean),
-          familyHistory: familyHistory.split(',').map((s) => s.trim()).filter(Boolean),
-          medications,
-          surgeries,
-          bowelHabits,
-        },
-        lifestyle: {
-          sleepHours,
-          stressLevel,
-          smoking,
-          alcohol,
-          physicalActivity,
-          activityFrequency,
-        },
-        dietaryHistory: {
-          waterIntakeMl,
-          preferredFoods,
-          dislikedFoods,
-          allergies: allergies.split(',').map((s) => s.trim()).filter(Boolean),
-          foodIntolerances: foodIntolerances.split(',').map((s) => s.trim()).filter(Boolean),
-          appetite,
-          recall24h,
-          weekendHabits,
-        },
-        updatedAt: new Date().toISOString(),
-      };
-
+      const data = getCurrentAnamnesis();
       await onSave(data);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePrintClick = () => {
+    if (onPrint) {
+      onPrint(getCurrentAnamnesis());
     }
   };
 
@@ -145,6 +155,16 @@ export const AnamnesisForm: React.FC<AnamnesisFormProps> = ({
               <CheckCircle2 className="w-4 h-4" />
               <span>Anamnese salva!</span>
             </span>
+          )}
+          {onPrint && (
+            <button
+              type="button"
+              onClick={handlePrintClick}
+              className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-2xs hover:border-slate-300"
+            >
+              <Printer className="w-4 h-4 text-emerald-600" />
+              <span>Imprimir / Gerar PDF</span>
+            </button>
           )}
           <button
             type="submit"
@@ -455,28 +475,41 @@ export const AnamnesisForm: React.FC<AnamnesisFormProps> = ({
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
-          >
-            {saving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Salvando Dados...</span>
-              </>
-            ) : savedSuccess ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Anamnese Salva!</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Salvar Anamnese Clínica</span>
-              </>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            {onPrint && (
+              <button
+                type="button"
+                onClick={handlePrintClick}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <Printer className="w-4 h-4 text-emerald-600" />
+                <span>Imprimir / Gerar PDF</span>
+              </button>
             )}
-          </button>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Salvando Dados...</span>
+                </>
+              ) : savedSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Anamnese Salva!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Anamnese Clínica</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </form>

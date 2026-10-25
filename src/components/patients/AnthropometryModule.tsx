@@ -14,7 +14,8 @@ import {
   ChevronUp,
   Info,
   Edit2,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,6 +44,7 @@ interface AnthropometryModuleProps {
   assessments: Anthropometry[];
   onAddAssessment: (data: Anthropometry) => Promise<void>;
   onDeleteAssessment: (id: string) => Promise<void>;
+  onPrint?: () => void;
 }
 
 export const AnthropometryModule: React.FC<AnthropometryModuleProps> = ({
@@ -50,6 +52,7 @@ export const AnthropometryModule: React.FC<AnthropometryModuleProps> = ({
   assessments,
   onAddAssessment,
   onDeleteAssessment,
+  onPrint,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);
@@ -248,13 +251,26 @@ export const AnthropometryModule: React.FC<AnthropometryModuleProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNew}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
-        >
-          {showAddForm && !editingAssessmentId ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          <span>{showAddForm && !editingAssessmentId ? 'Fechar Formulário' : 'Nova Avaliação Física'}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {onPrint && assessments.length > 0 && (
+            <button
+              onClick={onPrint}
+              type="button"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+            >
+              <Printer className="w-4 h-4 text-emerald-600" />
+              <span>Imprimir / Gerar PDF</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleOpenNew}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+          >
+            {showAddForm && !editingAssessmentId ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span>{showAddForm && !editingAssessmentId ? 'Fechar Formulário' : 'Nova Avaliação Física'}</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards: Current Status & Progress */}

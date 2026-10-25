@@ -9,6 +9,10 @@ import { PatientListView } from './components/patients/PatientListView';
 import { PatientDetailView } from './components/patients/PatientDetailView';
 import { DietPlannerView } from './components/diet/DietPlannerView';
 import { PrintableDietView } from './components/diet/PrintableDietView';
+import { PrintableSupplementsView } from './components/supplements/PrintableSupplementsView';
+import { PrintableAnthropometryView } from './components/patients/PrintableAnthropometryView';
+import { PrintableAnamnesisView } from './components/patients/PrintableAnamnesisView';
+import { PrintableOverviewView } from './components/patients/PrintableOverviewView';
 import { ScheduleView } from './components/schedule/ScheduleView';
 import { FoodDatabaseView } from './components/foods/FoodDatabaseView';
 import { SupplementPrescriptionsView } from './components/supplements/SupplementPrescriptionsView';
@@ -172,6 +176,21 @@ export function App() {
   // Diet Planner specific state
   const [dietPlanToEdit, setDietPlanToEdit] = useState<DietPlan | null>(null);
   const [dietPlanToPrint, setDietPlanToPrint] = useState<{ patient: Patient; plan: DietPlan } | null>(null);
+  const [printableDoc, setPrintableDoc] = useState<
+    | { type: 'diet'; patient: Patient; plan: DietPlan }
+    | { type: 'supplements'; patient: Patient; supplements: Supplement[] }
+    | { type: 'anthropometry'; patient: Patient; assessment?: Anthropometry; history?: Anthropometry[] }
+    | { type: 'anamnesis'; patient: Patient; anamnesis: Anamnesis }
+    | {
+        type: 'overview';
+        patient: Patient;
+        anamnesis: Anamnesis | null;
+        anthropometryList: Anthropometry[];
+        dietPlans: DietPlan[];
+        supplements: Supplement[];
+      }
+    | null
+  >(null);
   const [energyCalcForPlanner, setEnergyCalcForPlanner] = useState<EnergyCalculation | null>(null);
 
   // Subscription & Trial state
@@ -248,6 +267,7 @@ export function App() {
         setSelectedPatient(null);
         setDietPlanToEdit(null);
         setDietPlanToPrint(null);
+        setPrintableDoc(null);
       }
       loadUserData();
     } else {
@@ -344,6 +364,7 @@ export function App() {
         setSelectedPatient(null);
         setDietPlanToEdit(null);
         setDietPlanToPrint(null);
+        setPrintableDoc(null);
         setIsPatientModalOpen(false);
         setIsAppointmentModalOpen(false);
       } else {
@@ -354,6 +375,7 @@ export function App() {
         // Print & Edit sub-views
         if (!state.isPrint) {
           setDietPlanToPrint(null);
+          setPrintableDoc(null);
         }
         if (!state.isDietEdit && state.tab !== 'diet_planner') {
           setDietPlanToEdit(null);
@@ -534,6 +556,7 @@ export function App() {
     setDietPlanToEdit(plan || null);
     setEnergyCalcForPlanner(energyCalc || null);
     setDietPlanToPrint(null);
+    setPrintableDoc(null);
     setCurrentTab('diet_planner');
     pushNavState({
       tab: 'diet_planner',
@@ -543,7 +566,55 @@ export function App() {
   };
 
   const handlePrintDietPlan = (patient: Patient, plan: DietPlan) => {
+    setPrintableDoc({ type: 'diet', patient, plan });
     setDietPlanToPrint({ patient, plan });
+    pushNavState({
+      tab: currentTab,
+      patientId: patient.id,
+      isPrint: true,
+    });
+  };
+
+  const handlePrintSupplements = (patient: Patient, supplements: Supplement[]) => {
+    setPrintableDoc({ type: 'supplements', patient, supplements });
+    pushNavState({
+      tab: currentTab,
+      patientId: patient.id,
+      isPrint: true,
+    });
+  };
+
+  const handlePrintAnthropometry = (
+    patient: Patient,
+    assessment?: Anthropometry,
+    history?: Anthropometry[]
+  ) => {
+    setPrintableDoc({ type: 'anthropometry', patient, assessment, history });
+    pushNavState({
+      tab: currentTab,
+      patientId: patient.id,
+      isPrint: true,
+    });
+  };
+
+  const handlePrintAnamnesis = (patient: Patient, anamnesis: Anamnesis) => {
+    setPrintableDoc({ type: 'anamnesis', patient, anamnesis });
+    pushNavState({
+      tab: currentTab,
+      patientId: patient.id,
+      isPrint: true,
+    });
+  };
+
+  const handlePrintOverview = (patient: Patient) => {
+    setPrintableDoc({
+      type: 'overview',
+      patient,
+      anamnesis: patientAnamnesis,
+      anthropometryList: patientAnthropometry,
+      dietPlans: patientDietPlans,
+      supplements: patientSupplements,
+    });
     pushNavState({
       tab: currentTab,
       patientId: patient.id,
@@ -648,17 +719,96 @@ export function App() {
   }
 
   // If in printable view mode
-  if (dietPlanToPrint) {
-    return (
-      <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
-        <PrintableDietView
-          patient={dietPlanToPrint.patient}
-          plan={dietPlanToPrint.plan}
-          clinicProfile={clinicProfile}
-          onBack={() => setDietPlanToPrint(null)}
-        />
-      </div>
-    );
+  if (printableDoc || dietPlanToPrint) {
+    const doc =
+      printableDoc ||
+      (dietPlanToPrint
+        ? ({ type: 'diet' as const, patient: dietPlanToPrint.patient, plan: dietPlanToPrint.plan })
+        : null);
+
+    if (doc?.type === 'diet') {
+      return (
+        <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
+          <PrintableDietView
+            patient={doc.patient}
+            plan={doc.plan}
+            clinicProfile={clinicProfile}
+            onBack={() => {
+              setPrintableDoc(null);
+              setDietPlanToPrint(null);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (doc?.type === 'supplements') {
+      return (
+        <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
+          <PrintableSupplementsView
+            patient={doc.patient}
+            supplements={doc.supplements}
+            clinicProfile={clinicProfile}
+            onBack={() => {
+              setPrintableDoc(null);
+              setDietPlanToPrint(null);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (doc?.type === 'anthropometry') {
+      return (
+        <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
+          <PrintableAnthropometryView
+            patient={doc.patient}
+            assessment={doc.assessment}
+            history={doc.history}
+            clinicProfile={clinicProfile}
+            onBack={() => {
+              setPrintableDoc(null);
+              setDietPlanToPrint(null);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (doc?.type === 'anamnesis') {
+      return (
+        <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
+          <PrintableAnamnesisView
+            patient={doc.patient}
+            anamnesis={doc.anamnesis}
+            clinicProfile={clinicProfile}
+            onBack={() => {
+              setPrintableDoc(null);
+              setDietPlanToPrint(null);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (doc?.type === 'overview') {
+      return (
+        <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
+          <PrintableOverviewView
+            patient={doc.patient}
+            anamnesis={doc.anamnesis}
+            anthropometryList={doc.anthropometryList}
+            dietPlans={doc.dietPlans}
+            supplements={doc.supplements}
+            clinicProfile={clinicProfile}
+            onBack={() => {
+              setPrintableDoc(null);
+              setDietPlanToPrint(null);
+            }}
+          />
+        </div>
+      );
+    }
   }
 
   return (
@@ -718,6 +868,10 @@ export function App() {
                   onEditPatient={(p) => handleOpenNewPatientModal(p)}
                   onOpenDietPlanner={handleOpenDietPlanner}
                   onPrintDietPlan={handlePrintDietPlan}
+                  onPrintOverview={handlePrintOverview}
+                  onPrintAnamnesis={handlePrintAnamnesis}
+                  onPrintAnthropometry={handlePrintAnthropometry}
+                  onPrintSupplements={handlePrintSupplements}
                   anamnesis={patientAnamnesis}
                   onSaveAnamnesis={handleSaveAnamnesis}
                   anthropometryList={patientAnthropometry}
@@ -793,6 +947,7 @@ export function App() {
               supplements={allSupplementsMap}
               onSaveSupplement={handleSaveSupplement}
               onDeleteSupplement={handleDeleteSupplement}
+              onPrintSupplements={handlePrintSupplements}
             />
           )}
 

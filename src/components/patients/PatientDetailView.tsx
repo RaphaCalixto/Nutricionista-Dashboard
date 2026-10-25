@@ -42,6 +42,10 @@ interface PatientDetailViewProps {
   onEditPatient: (patient: Patient) => void;
   onOpenDietPlanner: (patient: Patient, plan?: DietPlan, energyCalc?: EnergyCalculation) => void;
   onPrintDietPlan: (patient: Patient, plan: DietPlan) => void;
+  onPrintOverview?: (patient: Patient) => void;
+  onPrintAnamnesis?: (patient: Patient, anamnesis: Anamnesis) => void;
+  onPrintAnthropometry?: (patient: Patient, assessment?: Anthropometry, history?: Anthropometry[]) => void;
+  onPrintSupplements?: (patient: Patient, supplements: Supplement[]) => void;
   // Data props
   anamnesis: Anamnesis | null;
   onSaveAnamnesis: (data: Anamnesis) => Promise<void>;
@@ -69,6 +73,10 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   onEditPatient,
   onOpenDietPlanner,
   onPrintDietPlan,
+  onPrintOverview,
+  onPrintAnamnesis,
+  onPrintAnthropometry,
+  onPrintSupplements,
   anamnesis,
   onSaveAnamnesis,
   anthropometryList,
@@ -269,6 +277,24 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
       {/* Tab 1: Overview */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* Overview Header Action Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Prontuário & Visão Geral</h3>
+              <p className="text-xs text-slate-500">Resumo clínico consolidado de {patient.name}</p>
+            </div>
+            {onPrintOverview && (
+              <button
+                type="button"
+                onClick={() => onPrintOverview(patient)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+              >
+                <Printer className="w-4 h-4 text-emerald-600" />
+                <span>Imprimir / Gerar PDF</span>
+              </button>
+            )}
+          </div>
+
           {/* Top Quick Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
@@ -476,6 +502,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           patient={patient}
           initialAnamnesis={anamnesis}
           onSave={onSaveAnamnesis}
+          onPrint={onPrintAnamnesis ? (data) => onPrintAnamnesis(patient, data) : undefined}
         />
       )}
 
@@ -486,6 +513,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           assessments={anthropometryList}
           onAddAssessment={onAddAnthropometry}
           onDeleteAssessment={onDeleteAnthropometry}
+          onPrint={onPrintAnthropometry ? () => onPrintAnthropometry(patient, latestAssessment, anthropometryList) : undefined}
         />
       )}
 
@@ -604,18 +632,30 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
               <h3 className="font-bold text-slate-800 text-base">Prescrição de Suplementos</h3>
               <p className="text-xs text-slate-500">Suplementação e fitoterápicos indicados para {patient.name}</p>
             </div>
-            {onSaveSupplement && (
-              <button
-                onClick={() => {
-                  setSupplementToEdit(null);
-                  setIsSupplementModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Adicionar Suplemento</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {onPrintSupplements && supplements.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onPrintSupplements(patient, supplements)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer shadow-2xs hover:border-slate-300"
+                >
+                  <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Imprimir / Gerar PDF</span>
+                </button>
+              )}
+              {onSaveSupplement && (
+                <button
+                  onClick={() => {
+                    setSupplementToEdit(null);
+                    setIsSupplementModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Adicionar Suplemento</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {supplements.length === 0 ? (

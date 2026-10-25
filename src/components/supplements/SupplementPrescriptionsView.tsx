@@ -8,7 +8,8 @@ import {
   Copy,
   Check,
   Sparkles,
-  User
+  User,
+  Printer
 } from 'lucide-react';
 import { Supplement, Patient } from '../../types';
 import { SupplementModal } from '../modals/SupplementModal';
@@ -20,6 +21,7 @@ interface SupplementPrescriptionsViewProps {
   supplements: Record<string, Supplement[]>;
   onSaveSupplement: (supplement: Supplement) => Promise<void>;
   onDeleteSupplement: (patientId: string, id: string) => Promise<void>;
+  onPrintSupplements?: (patient: Patient, supplements: Supplement[]) => void;
 }
 
 export const SupplementPrescriptionsView: React.FC<SupplementPrescriptionsViewProps> = ({
@@ -27,6 +29,7 @@ export const SupplementPrescriptionsView: React.FC<SupplementPrescriptionsViewPr
   supplements,
   onSaveSupplement,
   onDeleteSupplement,
+  onPrintSupplements,
 }) => {
   const [selectedPatientId, setSelectedPatientId] = useState<string>(
     patients[0]?.id || ''
@@ -64,16 +67,29 @@ export const SupplementPrescriptionsView: React.FC<SupplementPrescriptionsViewPr
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setSupplementToEdit(null);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Prescrição de Suplemento</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {onPrintSupplements && currentPatient && patientSupplements.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onPrintSupplements(currentPatient, patientSupplements)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+            >
+              <Printer className="w-4 h-4 text-emerald-600" />
+              <span>Imprimir / Gerar PDF</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setSupplementToEdit(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Prescrição de Suplemento</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid: Prescriptions & Water Calculator */}
