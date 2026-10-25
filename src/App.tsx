@@ -204,10 +204,17 @@ export function App() {
     setAllSupplementsMap(supMap);
   }, []);
 
+  const [subscriptionRefreshKey, setSubscriptionRefreshKey] = useState(0);
+
   // Realtime subscription & trial status calculation
   const subscriptionStatus = useMemo(() => {
     return getSubscriptionStatus(currentUser, patients.length);
-  }, [currentUser, patients.length]);
+  }, [currentUser, patients.length, subscriptionRefreshKey]);
+
+  const handlePlanActivated = () => {
+    setSubscriptionRefreshKey((k) => k + 1);
+    loadUserData();
+  };
 
   const prevUserIdRef = useRef<string | null>(null);
 
@@ -784,6 +791,7 @@ export function App() {
                 setSubscriptionTriggerReason('manual');
                 setIsSubscriptionModalOpen(true);
               }}
+              onPlanActivated={handlePlanActivated}
             />
           )}
         </main>
@@ -824,9 +832,7 @@ export function App() {
         currentUser={currentUser}
         subscriptionStatus={subscriptionStatus}
         triggerReason={subscriptionTriggerReason}
-        onPlanActivated={() => {
-          loadUserData();
-        }}
+        onPlanActivated={handlePlanActivated}
       />
     </div>
   );

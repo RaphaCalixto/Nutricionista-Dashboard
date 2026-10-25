@@ -202,3 +202,151 @@ export function activateProPlan(user: User, plan: 'monthly' | 'annual', paymentI
   saveStoredSubscription(record);
   return record;
 }
+
+// ==================== COUPONS SYSTEM ====================
+
+export interface CouponDefinition {
+  code: string;
+  durationDays: number;
+  label: string;
+  description: string;
+}
+
+export const AVAILABLE_COUPONS: Record<string, CouponDefinition> = {
+  NUTRI1MES: {
+    code: 'NUTRI1MES',
+    durationDays: 30,
+    label: '1 Mês de Acesso Pro',
+    description: 'Libera acesso ilimitado Pro por 30 dias',
+  },
+  NUTRI3MESES: {
+    code: 'NUTRI3MESES',
+    durationDays: 90,
+    label: '3 Meses de Acesso Pro',
+    description: 'Libera acesso ilimitado Pro por 90 dias',
+  },
+  NUTRI1ANO: {
+    code: 'NUTRI1ANO',
+    durationDays: 365,
+    label: '1 Ano de Acesso Pro',
+    description: 'Libera acesso ilimitado Pro por 365 dias (1 ano)',
+  },
+};
+
+export interface RedeemedCoupon {
+  code: string;
+  label: string;
+  durationDays: number;
+  redeemedAt: string;
+  expiresAt: string;
+}
+
+function getCouponsStorageKey(userId: string): string {
+  return `nutriplan_coupons_${userId}`;
+}
+
+export function getRedeemedCoupons(userId: string): RedeemedCoupon[] {
+  try {
+    const raw = localStorage.getItem(getCouponsStorageKey(userId));
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {}
+  return [];
+}
+
+export function saveRedeemedCoupons(userId: string, coupons: RedeemedCoupon[]): void {
+  try {
+    localStorage.setItem(getCouponsStorageKey(userId), JSON.stringify(coupons));
+  } catch (e) {
+    console.error('Erro ao salvar cupons resgatados', e);
+  }
+}
+
+export interface RedeemCouponResult {
+  success: boolean;
+  message: string;
+  coupon?: RedeemedCoupon;
+  newExpiresAt?: string;
+}
+
+/**
+ * Valida e resgata um cupom promocional para o usuário
+ */
+export function redeemCoupon(user: User, rawCode: string): RedeemCouponResult {
+  const code = (rawCode || '').trim().toUpperCase();
+
+  if (!code) {
+    return {
+      success: false,
+      message: 'Por favor, digite o código do cupom.',
+    };
+  }
+
+  const couponDef = AVAILABLE_COUPONS[code];
+  if (!couponDef) {
+    return {
+      success: false,
+      message: 'Cupom inválido ou não encontrado. Verifique se digitou corretamente.',
+    };
+  }
+
+  // Verifica se o usuário já resgatou este mesmo cupom anteriormente
+  const alreadyRedeemed = getRedeemedCoupons(user.id);
+  if (alreadyRedeemed.some((c) => c.code === code)) {
+    return {
+      success: false,
+      message: 'Este cupom já foi utilizado nesta conta. Cada cupom só pode ser resgatado uma única vez.',
+    };
+  }
+
+  // Calcula a data de expiração
+  const now = new Date();
+  let baseDate = now;
+
+  // Se o usuário já tiver uma assinatura Pro ativa com validade futura, estende a partir da data de término
+  const stored = getStoredSubscription(user.id);
+  if (stored && stored.status === 'active') {
+    const currentExpires = new Date(stored.expiresAt);
+    if (currentExpires > now) {
+      baseDate = currentExpires;
+    }
+  }
+
+  const newExpiresAt = new Date(baseDate);
+  newExpiresAt.setDate(newExpiresAt.getDate() + couponDef.durationDays);
+
+  // Atualiza a assinatura do usuário para ativa com o novo período
+  const updatedSubscription: SubscriptionRecord = {
+    userId: user.id,
+    userEmail: user.email,
+    status: 'active',
+    plan: couponDef.durationDays >= 365 ? 'annual' : 'monthly',
+    asaasPaymentId: `coupon_${code}_${Date.now()}`,
+    expiresAt: newExpiresAt.toISOString(),
+    createdAt: stored?.createdAt || now.toISOString(),
+    updatedAt: now.toISOString(),
+  };
+
+  saveStoredSubscription(updatedSubscription);
+
+  // Registra no histórico de cupons utilizados para impedir reutilização
+  const newRedeemedRecord: RedeemedCoupon = {
+    code,
+    label: couponDef.label,
+    durationDays: couponDef.durationDays,
+    redeemedAt: now.toISOString(),
+    expiresAt: newExpiresAt.toISOString(),
+  };
+
+  saveRedeemedCoupons(user.id, [...alreadyRedeemed, newRedeemedRecord]);
+
+  const formattedDate = newExpiresAt.toLocaleDateString('pt-BR');
+
+  return {
+    success: true,
+    message: `Cupom ${code} ativado com sucesso! Você ganhou ${couponDef.label} (válido até ${formattedDate}).`,
+    coupon: newRedeemedRecord,
+    newExpiresAt: newExpiresAt.toISOString(),
+  };
+}

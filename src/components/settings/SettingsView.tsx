@@ -14,10 +14,20 @@ import {
   Crown,
   Zap,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  Ticket,
+  Gift,
+  Check,
+  AlertCircle
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import type { ClinicProfile, User } from '../../types';
-import type { SubscriptionStatus } from '../../services/subscription';
+import {
+  type SubscriptionStatus,
+  redeemCoupon,
+  getRedeemedCoupons,
+  type RedeemedCoupon,
+} from '../../services/subscription';
 import { usePWAInstall } from '../../services/pwa';
 import { InstallAppModal } from '../modals/InstallAppModal';
 
@@ -31,6 +41,7 @@ interface SettingsViewProps {
   onCheckConnection?: () => Promise<void>;
   subscriptionStatus?: SubscriptionStatus;
   onOpenSubscriptionModal?: () => void;
+  onPlanActivated?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -40,6 +51,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onLogout,
   subscriptionStatus,
   onOpenSubscriptionModal,
+  onPlanActivated,
 }) => {
   const [nutritionistName, setNutritionistName] = useState(
     clinicProfile.nutritionistName || currentUser?.name || 'Nutricionista'
@@ -53,6 +65,47 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
+
+  // Estados do sistema de Cupom
+  const [couponCode, setCouponCode] = useState('');
+  const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [redeemedCoupons, setRedeemedCoupons] = useState<RedeemedCoupon[]>([]);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      setRedeemedCoupons(getRedeemedCoupons(currentUser.id));
+    }
+  }, [currentUser?.id]);
+
+  const handleRedeemCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      setCouponFeedback({
+        type: 'error',
+        text: 'Você precisa estar logado para resgatar um cupom.'
+      });
+      return;
+    }
+
+    const res = redeemCoupon(currentUser, couponCode);
+    if (res.success) {
+      setCouponFeedback({ type: 'success', text: res.message });
+      setCouponCode('');
+      setRedeemedCoupons(getRedeemedCoupons(currentUser.id));
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } catch (err) {}
+      if (onPlanActivated) {
+        onPlanActivated();
+      }
+    } else {
+      setCouponFeedback({ type: 'error', text: res.message });
+    }
+  };
 
   useEffect(() => {
     setNutritionistName(clinicProfile.nutritionistName || currentUser?.name || 'Nutricionista');
@@ -397,6 +450,108 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Resgate de Cupons Promocionais */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-sm">
+            <Ticket className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span>Cupom de Acesso</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                PROMOÇÃO / CORTESIA
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Possui um código de acesso ou cortesia? Insira abaixo para desbloquear o Plano Pro.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleRedeemCoupon} className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponFeedback(null);
+                }}
+                placeholder="Ex: NUTRI1MES, NUTRI3MESES, NUTRI1ANO"
+                className="w-full px-4 py-2.5 text-xs font-mono font-bold tracking-wider rounded-xl border border-slate-300 uppercase focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-slate-50/50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!couponCode.trim()}
+              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm shadow-purple-500/20 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Gift className="w-4 h-4" />
+              <span>Resgatar Cupom</span>
+            </button>
+          </div>
+
+          {couponFeedback && (
+            <div
+              className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                couponFeedback.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-800 border border-rose-200'
+              }`}
+            >
+              {couponFeedback.type === 'success' ? (
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              )}
+              <span>{couponFeedback.text}</span>
+            </div>
+          )}
+        </form>
+
+        {redeemedCoupons.length > 0 && (
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              Cupons Resgatados nesta Conta:
+            </span>
+            <div className="space-y-1.5">
+              {redeemedCoupons.map((c) => {
+                const isStillValid = new Date(c.expiresAt).getTime() > Date.now();
+                return (
+                  <div
+                    key={c.code}
+                    className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                        {c.code}
+                      </span>
+                      <span className="text-slate-700 font-medium">{c.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="text-slate-400">
+                        Ativado em {new Date(c.redeemedAt).toLocaleDateString('pt-BR')}
+                      </span>
+                      {isStillValid ? (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-full">
+                          Válido até {new Date(c.expiresAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-slate-200 text-slate-600 font-semibold rounded-full">
+                          Expirado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Backup Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-3">
