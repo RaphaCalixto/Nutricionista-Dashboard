@@ -43,9 +43,9 @@ export const PLANS: Record<'monthly' | 'annual', PlanDetails> = {
   monthly: {
     id: 'monthly',
     name: 'Plano Pro Mensal',
-    price: 5.00,
+    price: 29.90,
     period: '/mês',
-    billingText: 'Cobrado mensalmente • Valor promocional de teste',
+    billingText: 'Cobrado mensalmente • Cancele quando quiser',
     checkoutUrl: 'https://www.asaas.com/000/c/ufjxf9iqw8n414ay',
     features: PRO_FEATURES,
   },
