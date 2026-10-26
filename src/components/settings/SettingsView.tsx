@@ -18,7 +18,8 @@ import {
   Ticket,
   Gift,
   Check,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { ClinicProfile, User } from '../../types';
@@ -77,18 +78,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isCanceling, setIsCanceling] = useState(false);
   const [cancelFeedback, setCancelFeedback] = useState<string | null>(null);
 
-  const handleConfirmCancelPlan = () => {
+  const handleConfirmCancelPlan = async () => {
     if (!currentUser) return;
     setIsCanceling(true);
 
-    setTimeout(() => {
-      cancelProPlan(currentUser);
+    try {
+      await cancelProPlan(currentUser);
       setIsCanceling(false);
       setShowCancelModal(false);
-      setCancelFeedback('Sua assinatura foi cancelada com sucesso. Sua conta retornou ao plano gratuito.');
+      const expirationDateStr = subscriptionStatus?.expiresAt
+        ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR')
+        : 'final do período vigente';
+      setCancelFeedback(`Assinatura cancelada com sucesso. Não haverá novas cobranças e seu acesso Pro continuará liberado até ${expirationDateStr}.`);
       if (onPlanActivated) onPlanActivated();
-      setTimeout(() => setCancelFeedback(null), 6000);
-    }, 600);
+      setTimeout(() => setCancelFeedback(null), 8000);
+    } catch (err) {
+      setIsCanceling(false);
+      setShowCancelModal(false);
+      if (onPlanActivated) onPlanActivated();
+    }
   };
 
   useEffect(() => {
@@ -414,7 +422,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div>
                 <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                   <span>Plano & Assinatura</span>
-                  {subscriptionStatus.isPro ? (
+                  {subscriptionStatus.isCanceled ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                      CANCELAMENTO AGENDADO
+                    </span>
+                  ) : subscriptionStatus.isPro ? (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                       {subscriptionStatus.plan === 'annual' ? 'PRO ANUAL ATIVO' : 'PRO MENSAL ATIVO'}
                     </span>
@@ -429,7 +441,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   )}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {subscriptionStatus.isPro
+                  {subscriptionStatus.isCanceled
+                    ? `Sua assinatura foi cancelada e não haverá novas cobranças. Seu acesso Pro continuará liberado até ${subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR') : 'o fim do período'}.`
+                    : subscriptionStatus.isPro
                     ? `Você tem acesso irrestrito às funcionalidades no Plano ${subscriptionStatus.plan === 'annual' ? 'Pro Anual' : 'Pro Mensal'}.`
                     : `Restam ${subscriptionStatus.daysRemaining} dias de teste gratuito (${subscriptionStatus.currentPatientCount}/5 pacientes cadastrados).`}
                 </p>
@@ -437,7 +451,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {subscriptionStatus.isPro ? (
+              {subscriptionStatus.isCanceled ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-800 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 font-semibold flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Acesso até {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR') : ''}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenSubscriptionModal?.('annual')}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>Reativar / Renovar</span>
+                  </button>
+                </div>
+              ) : subscriptionStatus.isPro ? (
                 <>
                   {subscriptionStatus.plan === 'monthly' && (
                     <button
@@ -477,8 +505,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           )}
 
-          {/* Banner de migração para o anual para quem está no mensal */}
-          {subscriptionStatus.isPro && subscriptionStatus.plan === 'monthly' && (
+          {/* Banner de migração para o anual para quem está no mensal e não cancelou */}
+          {!subscriptionStatus.isCanceled && subscriptionStatus.isPro && subscriptionStatus.plan === 'monthly' && (
             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
@@ -503,7 +531,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-slate-400 block mb-0.5">Plano Vigente</span>
               <span className="font-bold text-slate-800">
-                {subscriptionStatus.isPro
+                {subscriptionStatus.isCanceled
+                  ? (subscriptionStatus.plan === 'annual' ? 'Pro Anual (Cancelado)' : 'Pro Mensal (Cancelado)')
+                  : subscriptionStatus.isPro
                   ? (subscriptionStatus.plan === 'annual' ? 'Plano Pro Anual' : 'Plano Pro Mensal')
                   : 'Período de Testes (Trial)'}
               </span>
@@ -517,7 +547,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-slate-400 block mb-0.5">Renovação / Validade</span>
               <span className="font-bold text-slate-800">
-                {subscriptionStatus.isPro
+                {subscriptionStatus.isCanceled
+                  ? (subscriptionStatus.expiresAt ? `Expira em ${new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR')}` : 'Cancelado')
+                  : subscriptionStatus.isPro
                   ? (subscriptionStatus.expiresAt ? `Ativo até ${new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR')}` : 'Ativo')
                   : `${subscriptionStatus.daysRemaining} dias restantes`}
               </span>
@@ -671,19 +703,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Deseja realmente cancelar sua assinatura?
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Ao confirmar o cancelamento, sua conta retornará ao <strong>plano gratuito</strong> (com limite de até 5 pacientes).
-                Seus pacientes, prontuários e dietas já criados permanecerão intactos e salvos no sistema.
+                A renovação automática será cancelada e você não receberá novas cobranças.
+                Você <strong>continuará com acesso Pro liberado até o final do período pago</strong> ({subscriptionStatus?.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR') : 'o vencimento'}).
               </p>
             </div>
 
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-600 space-y-1.5">
-              <p className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
-                <span>O acesso ilimitado aos recursos Pro será encerrado.</span>
+              <p className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                <Check className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                <span>Acesso Pro continua ativo até {subscriptionStatus?.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR') : 'o término do período'}.</span>
               </p>
               <p className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
-                <span>Caso tenha contratado assinatura recorrente no cartão, a cobrança futura é cancelada.</span>
+                <span>Cobrança recorrente no Asaas cancelada imediatamente (sem novas faturas).</span>
+              </p>
+              <p className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                <span>Após a data limite, você voltará ao plano gratuito com todos os seus dados preservados.</span>
               </p>
               <p className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />

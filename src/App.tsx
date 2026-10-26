@@ -21,7 +21,7 @@ import { AuthView } from './components/auth/AuthView';
 import { PatientModal } from './components/modals/PatientModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
-import { getSubscriptionStatus, activateProPlan, checkAsaasPayment } from './services/subscription';
+import { getSubscriptionStatus, activateProPlan, checkAsaasPayment, getStoredSubscription } from './services/subscription';
 import confetti from 'canvas-confetti';
 
 import type {
@@ -277,11 +277,18 @@ export function App() {
 
   // Verificação automática de pagamento em segundo plano ao carregar ou voltar o foco para a aba
   useEffect(() => {
-    if (!currentUser || subscriptionStatus.isPro) return;
+    if (!currentUser || subscriptionStatus.isPro || subscriptionStatus.isCanceled) return;
+
+    // Se o usuário cancelou voluntariamente a assinatura, não force reativação automática
+    const stored = getStoredSubscription(currentUser.id);
+    if (stored?.status === 'canceled') return;
 
     let isMounted = true;
     const verifyInBackground = async () => {
       try {
+        const currentSub = getStoredSubscription(currentUser.id);
+        if (currentSub?.status === 'canceled') return;
+
         const savedPayer = (localStorage.getItem('nutriplan_payer_identifier') || '').trim();
         const isCpf = savedPayer.replace(/\D/g, '').length >= 11;
         const isEmail = savedPayer.includes('@');

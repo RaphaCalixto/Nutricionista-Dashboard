@@ -68,6 +68,8 @@ export interface SubscriptionRecord {
   status: 'active' | 'trial' | 'expired' | 'canceled';
   plan: 'free' | 'monthly' | 'annual';
   asaasPaymentId?: string;
+  asaasSubscriptionId?: string;
+  canceledAt?: string;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -77,13 +79,15 @@ export interface SubscriptionStatus {
   isPro: boolean;
   isTrial: boolean;
   isExpired: boolean;
+  isCanceled?: boolean;
+  canceledAt?: string;
   plan: 'free' | 'monthly' | 'annual';
   daysRemaining: number;
   trialTotalDays: number;
   currentPatientCount: number;
   maxPatients: number;
   canAddPatient: boolean;
-  status: 'trial' | 'active' | 'expired';
+  status: 'trial' | 'active' | 'expired' | 'canceled';
   expiresAt?: string;
 }
 
@@ -146,6 +150,7 @@ export function getSubscriptionStatus(user: User | null, patientCount: number): 
       isPro: true,
       isTrial: false,
       isExpired: false,
+      isCanceled: false,
       plan: 'annual',
       daysRemaining: 999,
       trialTotalDays: TRIAL_DAYS,
@@ -159,14 +164,56 @@ export function getSubscriptionStatus(user: User | null, patientCount: number): 
 
   // Verifica se o usuário tem assinatura paga salva
   const stored = getStoredSubscription(user.id);
-  if (stored && stored.status === 'active') {
+  if (stored) {
     const expires = new Date(stored.expiresAt).getTime();
     const now = Date.now();
-    if (expires > now) {
+    const isWithinValidPeriod = expires > now;
+
+    // Se o usuário cancelou a renovação mas o período vigente ainda não acabou:
+    if (stored.status === 'canceled') {
+      if (isWithinValidPeriod) {
+        // Mantém 100% de acesso Pro até a data de expiração!
+        return {
+          isPro: true,
+          isTrial: false,
+          isExpired: false,
+          isCanceled: true,
+          canceledAt: stored.canceledAt,
+          plan: stored.plan,
+          daysRemaining: Math.ceil((expires - now) / (1000 * 60 * 60 * 24)),
+          trialTotalDays: TRIAL_DAYS,
+          currentPatientCount: patientCount,
+          maxPatients: Infinity,
+          canAddPatient: true,
+          status: 'canceled',
+          expiresAt: stored.expiresAt,
+        };
+      } else {
+        // Já expirou após o cancelamento
+        return {
+          isPro: false,
+          isTrial: false,
+          isExpired: true,
+          isCanceled: true,
+          canceledAt: stored.canceledAt,
+          plan: 'free',
+          daysRemaining: 0,
+          trialTotalDays: TRIAL_DAYS,
+          currentPatientCount: patientCount,
+          maxPatients: TRIAL_PATIENT_LIMIT,
+          canAddPatient: false,
+          status: 'expired',
+          expiresAt: stored.expiresAt,
+        };
+      }
+    }
+
+    if (stored.status === 'active' && isWithinValidPeriod) {
       return {
         isPro: true,
         isTrial: false,
         isExpired: false,
+        isCanceled: false,
         plan: stored.plan,
         daysRemaining: Math.ceil((expires - now) / (1000 * 60 * 60 * 24)),
         trialTotalDays: TRIAL_DAYS,
@@ -193,6 +240,7 @@ export function getSubscriptionStatus(user: User | null, patientCount: number): 
     isPro: false,
     isTrial: !isExpired,
     isExpired,
+    isCanceled: false,
     plan: 'free',
     daysRemaining,
     trialTotalDays: TRIAL_DAYS,
@@ -206,7 +254,12 @@ export function getSubscriptionStatus(user: User | null, patientCount: number): 
 /**
  * Ativa manualmente ou após confirmação de pagamento o plano Pro
  */
-export function activateProPlan(user: User, plan: 'monthly' | 'annual', paymentId?: string): SubscriptionRecord {
+export function activateProPlan(
+  user: User,
+  plan: 'monthly' | 'annual',
+  paymentId?: string,
+  subscriptionId?: string
+): SubscriptionRecord {
   const now = new Date();
   const expirationDate = new Date(now);
 
@@ -222,6 +275,7 @@ export function activateProPlan(user: User, plan: 'monthly' | 'annual', paymentI
     status: 'active',
     plan,
     asaasPaymentId: paymentId || `asaas_sim_${Date.now()}`,
+    asaasSubscriptionId: subscriptionId,
     expiresAt: expirationDate.toISOString(),
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
@@ -294,23 +348,58 @@ export async function checkAsaasPayment(
 }
 
 /**
- * Cancela o plano Pro do usuário, retornando-o ao plano Gratuito
+ * Cancela a renovação automática do plano Pro do usuário.
+ * Mantém o acesso Pro 100% ativo até o término do período pago (expiresAt).
  */
-export function cancelProPlan(user: User): SubscriptionRecord {
+export async function cancelProPlan(user: User): Promise<SubscriptionRecord> {
   const current = getStoredSubscription(user.id);
   const now = new Date();
+
+  // Preserva a data de expiração vigente para que o usuário não perca o período que já pagou
+  let expiresAt = current?.expiresAt;
+  if (!expiresAt || new Date(expiresAt).getTime() <= now.getTime()) {
+    const defaultExp = new Date(now);
+    defaultExp.setMonth(defaultExp.getMonth() + 1);
+    expiresAt = defaultExp.toISOString();
+  }
 
   const record: SubscriptionRecord = {
     userId: user.id,
     userEmail: user.email,
     status: 'canceled',
-    plan: 'free',
-    expiresAt: now.toISOString(),
+    plan: current?.plan || 'monthly',
+    asaasPaymentId: current?.asaasPaymentId,
+    asaasSubscriptionId: current?.asaasSubscriptionId,
+    canceledAt: now.toISOString(),
+    expiresAt: expiresAt,
     createdAt: current?.createdAt || now.toISOString(),
     updatedAt: now.toISOString(),
   };
 
   saveStoredSubscription(record);
+
+  // Solicita ao backend o cancelamento da cobrança recorrente no Asaas
+  try {
+    const savedPayer = (localStorage.getItem('nutriplan_payer_identifier') || '').trim();
+    const isCpf = savedPayer.replace(/\D/g, '').length >= 11;
+    const isEmail = savedPayer.includes('@');
+
+    await fetch('/api/cancel-subscription.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: isEmail ? savedPayer : user.email,
+        cpf: isCpf ? savedPayer.replace(/\D/g, '') : undefined,
+        paymentId: current?.asaasPaymentId,
+        subscriptionId: current?.asaasSubscriptionId,
+      }),
+    });
+  } catch (err) {
+    console.warn('Erro ao notificar cancelamento no Asaas:', err);
+  }
+
   return record;
 }
 
