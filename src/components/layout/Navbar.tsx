@@ -3,12 +3,18 @@ import { Plus, Calendar as CalendarIcon, ShieldCheck, Crown, Zap, AlertTriangle 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { SubscriptionStatus } from '../../services/subscription';
+import type { Appointment, Patient } from '../../types';
+import { AppointmentsNotificationBell } from '../notifications/AppointmentsNotificationBell';
 
 interface NavbarProps {
   onNewPatient: () => void;
   onNewAppointment: () => void;
   subscriptionStatus?: SubscriptionStatus;
   onOpenSubscriptionModal?: () => void;
+  appointments?: Appointment[];
+  patients?: Patient[];
+  onNavigateToSchedule?: () => void;
+  onSelectPatient?: (patient: Patient) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,6 +22,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNewAppointment,
   subscriptionStatus,
   onOpenSubscriptionModal,
+  appointments = [],
+  patients = [],
+  onNavigateToSchedule,
+  onSelectPatient,
 }) => {
   const todayFormatted = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
   const capitalizedDate = todayFormatted.charAt(0).toUpperCase() + todayFormatted.slice(1);
@@ -35,85 +45,105 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span>Nutrição Clínica & Esportiva</span>
         </div>
 
-        {/* Mobile-only Status Badge: Positioned cleanly on the left on small screens (< sm) */}
+        {/* Mobile-only Status Badge & Notification Bell */}
+        <div className="sm:hidden flex items-center gap-1.5 shrink-0">
+          {subscriptionStatus && (
+            <>
+              {subscriptionStatus.isPro ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 text-amber-800 border border-amber-300/80 rounded-xl text-xs font-black shadow-2xs whitespace-nowrap">
+                  <Crown className="w-3.5 h-3.5 text-amber-600 fill-current shrink-0" />
+                  <span>PRO</span>
+                </div>
+              ) : subscriptionStatus.isExpired ? (
+                <div
+                  onClick={onOpenSubscriptionModal}
+                  className="cursor-pointer flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-1 rounded-xl text-[11px] font-bold text-rose-800 shadow-2xs whitespace-nowrap"
+                  title="Clique para assinar o NutriPlan Pro"
+                >
+                  <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                  <span className="text-[10px] font-black uppercase text-white bg-rose-600 px-1.5 py-0.5 rounded shadow-xs">
+                    Assinar Pro
+                  </span>
+                </div>
+              ) : (
+                <div
+                  onClick={onOpenSubscriptionModal}
+                  className="cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-200/90 px-2 py-1 rounded-xl text-[11px] font-bold text-slate-800 shadow-2xs whitespace-nowrap"
+                  title="Clique para ver os planos e fazer upgrade"
+                >
+                  <div className="flex items-center gap-1 text-amber-700">
+                    <Zap className="w-3.5 h-3.5 fill-current text-amber-500 shrink-0" />
+                    <span>{subscriptionStatus.daysRemaining}d</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-white bg-emerald-600 px-1.5 py-0.5 rounded shadow-xs">
+                    Pro
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Sininho de Notificação das Consultas */}
+          <AppointmentsNotificationBell
+            appointments={appointments}
+            patients={patients}
+            onNavigateToSchedule={onNavigateToSchedule}
+            onSelectPatient={onSelectPatient}
+          />
+        </div>
+      </div>
+
+      {/* Center Section: Status Banner on desktop / tablet (sm+) + Bell */}
+      <div className="hidden sm:flex items-center gap-2.5 shrink-0">
         {subscriptionStatus && (
-          <div className="sm:hidden flex items-center shrink-0">
+          <>
             {subscriptionStatus.isPro ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 text-amber-800 border border-amber-300/80 rounded-xl text-xs font-black shadow-2xs whitespace-nowrap">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 text-amber-800 border border-amber-300/80 rounded-xl text-xs font-black shadow-2xs whitespace-nowrap">
                 <Crown className="w-3.5 h-3.5 text-amber-600 fill-current shrink-0" />
-                <span>PRO</span>
+                <span>NutriPlan PRO</span>
               </div>
             ) : subscriptionStatus.isExpired ? (
               <div
                 onClick={onOpenSubscriptionModal}
-                className="cursor-pointer flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-1 rounded-xl text-[11px] font-bold text-rose-800 shadow-2xs whitespace-nowrap"
+                className="cursor-pointer flex items-center gap-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-800 transition-all shadow-2xs group whitespace-nowrap"
                 title="Clique para assinar o NutriPlan Pro"
               >
-                <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
-                <span className="text-[10px] font-black uppercase text-white bg-rose-600 px-1.5 py-0.5 rounded shadow-xs">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                <span>Teste de 14 dias encerrado</span>
+                <span className="text-[10px] font-black uppercase text-white bg-rose-600 group-hover:bg-rose-700 px-2 py-0.5 rounded-md shadow-xs">
                   Assinar Pro
                 </span>
               </div>
             ) : (
               <div
                 onClick={onOpenSubscriptionModal}
-                className="cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-200/90 px-2 py-1 rounded-xl text-[11px] font-bold text-slate-800 shadow-2xs whitespace-nowrap"
+                className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-amber-50 to-emerald-50 hover:from-amber-100 hover:to-emerald-100 border border-amber-200/90 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 transition-all shadow-2xs group whitespace-nowrap"
                 title="Clique para ver os planos e fazer upgrade"
               >
                 <div className="flex items-center gap-1 text-amber-700">
-                  <Zap className="w-3 h-3 fill-current text-amber-500 shrink-0" />
-                  <span>{subscriptionStatus.daysRemaining}d</span>
+                  <Zap className="w-3.5 h-3.5 fill-current text-amber-500 shrink-0" />
+                  <span>{subscriptionStatus.daysRemaining}d de teste</span>
                 </div>
-                <span className="text-[10px] font-black uppercase text-white bg-emerald-600 px-1.5 py-0.5 rounded shadow-xs">
-                  Pro
+                <span className="text-slate-300">|</span>
+                <span className="text-slate-600 font-semibold">
+                  {subscriptionStatus.currentPatientCount}/5 pac.
+                </span>
+                <span className="text-[10px] font-black uppercase text-white bg-emerald-600 group-hover:bg-emerald-700 px-2 py-0.5 rounded-md shadow-xs">
+                  Assinar
                 </span>
               </div>
             )}
-          </div>
+          </>
         )}
-      </div>
 
-      {/* Center Section: Status Banner on desktop / tablet (sm+) */}
-      {subscriptionStatus && (
-        <div className="hidden sm:flex items-center shrink-0">
-          {subscriptionStatus.isPro ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 text-amber-800 border border-amber-300/80 rounded-xl text-xs font-black shadow-2xs whitespace-nowrap">
-              <Crown className="w-3.5 h-3.5 text-amber-600 fill-current shrink-0" />
-              <span>NutriPlan PRO</span>
-            </div>
-          ) : subscriptionStatus.isExpired ? (
-            <div
-              onClick={onOpenSubscriptionModal}
-              className="cursor-pointer flex items-center gap-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-800 transition-all shadow-2xs group whitespace-nowrap"
-              title="Clique para assinar o NutriPlan Pro"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span>Teste de 14 dias encerrado</span>
-              <span className="text-[10px] font-black uppercase text-white bg-rose-600 group-hover:bg-rose-700 px-2 py-0.5 rounded-md shadow-xs">
-                Assinar Pro
-              </span>
-            </div>
-          ) : (
-            <div
-              onClick={onOpenSubscriptionModal}
-              className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-amber-50 to-emerald-50 hover:from-amber-100 hover:to-emerald-100 border border-amber-200/90 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 transition-all shadow-2xs group whitespace-nowrap"
-              title="Clique para ver os planos e fazer upgrade"
-            >
-              <div className="flex items-center gap-1 text-amber-700">
-                <Zap className="w-3.5 h-3.5 fill-current text-amber-500 shrink-0" />
-                <span>{subscriptionStatus.daysRemaining}d de teste</span>
-              </div>
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-600 font-semibold">
-                {subscriptionStatus.currentPatientCount}/5 pac.
-              </span>
-              <span className="text-[10px] font-black uppercase text-white bg-emerald-600 group-hover:bg-emerald-700 px-2 py-0.5 rounded-md shadow-xs">
-                Assinar
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+        {/* Sininho de Notificação das Consultas */}
+        <AppointmentsNotificationBell
+          appointments={appointments}
+          patients={patients}
+          onNavigateToSchedule={onNavigateToSchedule}
+          onSelectPatient={onSelectPatient}
+        />
+      </div>
 
       {/* Right Section: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">

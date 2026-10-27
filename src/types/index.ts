@@ -219,6 +219,7 @@ export interface ClinicProfile {
   address: string;
   logoUrl?: string;
   instagram?: string;
+  signatureUrl?: string;
 }
 
 export interface User {

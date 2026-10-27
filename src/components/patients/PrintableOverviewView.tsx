@@ -369,7 +369,16 @@ export const PrintableOverviewView: React.FC<PrintableOverviewViewProps> = ({
         </div>
 
         {/* Footer & Signature Line */}
-        <div className="pt-12 text-center break-inside-avoid space-y-1">
+        <div className="pt-12 text-center break-inside-avoid space-y-1 flex flex-col items-center">
+          {clinicProfile.signatureUrl && (
+            <div className="mb-1 flex justify-center">
+              <img
+                src={clinicProfile.signatureUrl}
+                alt="Assinatura"
+                className="max-h-20 max-w-64 object-contain"
+              />
+            </div>
+          )}
           <div className="w-64 border-b border-slate-400 mx-auto mb-2" />
           <p className="font-bold text-sm text-slate-800">{clinicProfile.nutritionistName}</p>
           <p className="text-xs text-slate-500 font-medium">Nutricionista • {clinicProfile.crn}</p>

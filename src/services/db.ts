@@ -794,5 +794,55 @@ export function saveClinicProfile(profile: ClinicProfile): ClinicProfile {
   const userId = getActiveUserId();
   const storageKey = getUserKey('clinic', userId);
   setLocal(storageKey, profile);
+
+  if (userId && userId !== DEMO_USER.id) {
+    (async () => {
+      try {
+        const { error } = await supabase.from('clinic_profiles').upsert({
+          user_id: userId,
+          nutritionist_name: profile.nutritionistName,
+          crn: profile.crn,
+          clinic_name: profile.clinicName,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          instagram: profile.instagram,
+          logo_url: profile.logoUrl || null,
+          signature_url: profile.signatureUrl || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+        if (error) {
+          console.warn('Could not sync clinic profile to supabase:', error.message);
+        }
+      } catch (e) {}
+    })();
+  }
+
   return profile;
 }
+
+export async function syncClinicProfileFromSupabase(): Promise<ClinicProfile | null> {
+  const user = getCurrentUser();
+  if (!user || user.id === DEMO_USER.id) return null;
+  const storageKey = getUserKey('clinic', user.id);
+  try {
+    const { data, error } = await supabase.from('clinic_profiles').select('*').eq('user_id', user.id).single();
+    if (!error && data) {
+      const profile: ClinicProfile = {
+        nutritionistName: data.nutritionist_name || user.name || '',
+        crn: data.crn || '',
+        clinicName: data.clinic_name || 'NutriPlan Pro',
+        email: data.email || user.email || '',
+        phone: data.phone || '',
+        address: data.address || '',
+        instagram: data.instagram || '',
+        logoUrl: data.logo_url || undefined,
+        signatureUrl: data.signature_url || undefined,
+      };
+      setLocal(storageKey, profile);
+      return profile;
+    }
+  } catch (e) {}
+  return null;
+}
+

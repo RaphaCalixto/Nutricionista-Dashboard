@@ -19,10 +19,13 @@ import {
   Gift,
   Check,
   AlertCircle,
-  Clock
+  Clock,
+  Upload,
+  Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { ClinicProfile, User } from '../../types';
+import { convertImageToWebP } from '../../utils/imageUtils';
 import {
   type SubscriptionStatus,
   redeemCoupon,
@@ -64,6 +67,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [phone, setPhone] = useState(clinicProfile.phone || '');
   const [address, setAddress] = useState(clinicProfile.address || '');
   const [instagram, setInstagram] = useState(clinicProfile.instagram || '');
+  const [signatureUrl, setSignatureUrl] = useState<string | undefined>(clinicProfile.signatureUrl);
+  const [signatureUploading, setSignatureUploading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const { isInstallable, installPWA, isIOS, isInstalled } = usePWAInstall();
@@ -143,7 +148,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setPhone(clinicProfile.phone || '');
     setAddress(clinicProfile.address || '');
     setInstagram(clinicProfile.instagram || '');
+    setSignatureUrl(clinicProfile.signatureUrl);
   }, [clinicProfile, currentUser]);
+
+  const handleSignatureFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setSignatureUploading(true);
+      const webpUrl = await convertImageToWebP(file, 600, 250, 0.85);
+      setSignatureUrl(webpUrl);
+    } catch (err) {
+      console.error('Erro ao converter imagem de assinatura para WebP:', err);
+      alert('Erro ao processar imagem da assinatura. Tente novamente.');
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
+
+  const handleRemoveSignature = () => {
+    setSignatureUrl(undefined);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +180,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       phone: phone.trim(),
       address: address.trim(),
       instagram: instagram.trim() || undefined,
+      signatureUrl: signatureUrl || undefined,
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
@@ -326,6 +352,65 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             placeholder="Ex: Av. Paulista, 1000 - Cj 804, São Paulo/SP"
             className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
           />
+        </div>
+
+        {/* Upload de Assinatura */}
+        <div className="pt-2 border-t border-slate-100">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+            Assinatura Digital / Rubrica (Para PDFs)
+          </label>
+          <p className="text-xs text-slate-500 mb-3">
+            Faça upload de uma imagem da sua assinatura ou carimbo com fundo transparente ou branco. Ela será convertida automaticamente para WebP leve e exibida acima do seu nome nos PDFs. Se não enviar nada, o sistema continuará gerando a assinatura em texto padrão.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            {signatureUrl ? (
+              <div className="relative group border border-slate-200 rounded-xl p-3 bg-slate-50 flex items-center justify-center min-w-[200px] h-24">
+                <img
+                  src={signatureUrl}
+                  alt="Assinatura cadastrada"
+                  className="max-h-20 max-w-[220px] object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveSignature}
+                  className="absolute -top-2 -right-2 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-colors"
+                  title="Remover assinatura"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full sm:w-64 h-24 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-xl cursor-pointer transition-colors p-3 text-center">
+                <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                <span className="text-xs font-semibold text-slate-600">
+                  {signatureUploading ? 'Otimizando em WebP...' : 'Clique para enviar assinatura'}
+                </span>
+                <span className="text-[10px] text-slate-400">PNG, JPG ou WEBP</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSignatureFileChange}
+                  disabled={signatureUploading}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            {signatureUrl && (
+              <label className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1.5 py-1 px-3 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{signatureUploading ? 'Processando...' : 'Trocar assinatura'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSignatureFileChange}
+                  disabled={signatureUploading}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between">

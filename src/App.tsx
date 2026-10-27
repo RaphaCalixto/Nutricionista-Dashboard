@@ -67,6 +67,7 @@ import {
   deleteEvolutionPhoto,
   getClinicProfile,
   saveClinicProfile,
+  syncClinicProfileFromSupabase,
   checkSupabaseConnection
 } from './services/db';
 
@@ -209,6 +210,13 @@ export function App() {
     setAppointments(apts);
     setClinicProfile(getClinicProfile());
     setSupabaseConnected(conn.connected);
+
+    // Sync remote clinic profile if available
+    syncClinicProfileFromSupabase().then((remoteProfile) => {
+      if (remoteProfile) {
+        setClinicProfile(remoteProfile);
+      }
+    }).catch(() => {});
 
     // Keep selectedPatient reference updated with fresh data without resetting to null
     setSelectedPatient((prev) => {
@@ -914,6 +922,10 @@ export function App() {
             setSubscriptionTriggerReason('manual');
             setIsSubscriptionModalOpen(true);
           }}
+          appointments={appointments}
+          patients={patients}
+          onNavigateToSchedule={() => handleSelectTab('schedule')}
+          onSelectPatient={handleSelectPatient}
         />
 
         {/* Dynamic Page Views */}
