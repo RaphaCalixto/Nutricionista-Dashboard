@@ -193,9 +193,16 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
 
       {/* Popover / Dropdown de Notificações */}
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 top-full mt-2.5 w-[330px] sm:w-[380px] max-w-[92vw] bg-white rounded-3xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-          {/* Header do Popover */}
-          <div className="p-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between">
+        <>
+          {/* Backdrop exclusivo para mobile para centralizar a atenção e fechar ao clicar */}
+          <div
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-40 sm:hidden animate-in fade-in duration-150"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div className="fixed inset-x-3.5 top-16 sm:absolute sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:top-full sm:mt-2.5 w-auto sm:w-[380px] max-w-sm mx-auto bg-white rounded-3xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100vh-5rem)] flex flex-col">
+            {/* Header do Popover */}
+            <div className="p-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
                 <Bell className="w-4 h-4" />
@@ -220,7 +227,7 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
 
           {/* Banner de Permissão do Navegador */}
           {permissionStatus !== 'granted' ? (
-            <div className="p-3 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between gap-2">
+            <div className="p-3 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2 text-[11px] text-emerald-950">
                 <Volume2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="leading-tight">
@@ -236,14 +243,14 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
               </button>
             </div>
           ) : (
-            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
+            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold shrink-0">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>Notificações no dispositivo ativadas</span>
             </div>
           )}
 
           {/* Lista de Consultas */}
-          <div className="max-h-[360px] overflow-y-auto p-3 space-y-2.5 divide-y divide-slate-100">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 divide-y divide-slate-100 max-h-[360px] sm:max-h-[380px]">
             {allAlertAppointments.length === 0 ? (
               <div className="py-8 text-center text-slate-400 space-y-2">
                 <Calendar className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
@@ -325,7 +332,7 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
 
           {/* Footer com link direto para a Agenda */}
           {onNavigateToSchedule && (
-            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
               <span className="text-[10px] text-slate-500 font-medium">
                 {totalCount} consulta(s) agendada(s)
               </span>
@@ -343,7 +350,8 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
             </div>
           )}
         </div>
-      )}
-    </div>
+      </>
+    )}
+  </div>
   );
 };
