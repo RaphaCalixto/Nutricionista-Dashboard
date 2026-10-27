@@ -3,7 +3,7 @@ import { Plus, Calendar as CalendarIcon, ShieldCheck, Crown, Zap, AlertTriangle 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { SubscriptionStatus } from '../../services/subscription';
-import type { Appointment, Patient } from '../../types';
+import type { Appointment, Patient, ClinicProfile } from '../../types';
 import { AppointmentsNotificationBell } from '../notifications/AppointmentsNotificationBell';
 
 interface NavbarProps {
@@ -15,6 +15,8 @@ interface NavbarProps {
   patients?: Patient[];
   onNavigateToSchedule?: () => void;
   onSelectPatient?: (patient: Patient) => void;
+  clinicProfile?: ClinicProfile;
+  onNavigateToSettings?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +28,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   patients = [],
   onNavigateToSchedule,
   onSelectPatient,
+  clinicProfile,
+  onNavigateToSettings,
 }) => {
   const todayFormatted = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
   const capitalizedDate = todayFormatted.charAt(0).toUpperCase() + todayFormatted.slice(1);
@@ -89,6 +93,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             patients={patients}
             onNavigateToSchedule={onNavigateToSchedule}
             onSelectPatient={onSelectPatient}
+            clinicProfile={clinicProfile}
+            onNavigateToSettings={onNavigateToSettings}
           />
         </div>
       </div>
@@ -142,6 +148,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           patients={patients}
           onNavigateToSchedule={onNavigateToSchedule}
           onSelectPatient={onSelectPatient}
+          clinicProfile={clinicProfile}
+          onNavigateToSettings={onNavigateToSettings}
         />
       </div>
 

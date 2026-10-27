@@ -10,17 +10,20 @@ import {
   ChevronRight,
   X,
   Volume2,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react';
 import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Appointment, Patient } from '../../types';
+import type { Appointment, Patient, ClinicProfile } from '../../types';
 
 interface AppointmentsNotificationBellProps {
   appointments?: Appointment[];
   patients?: Patient[];
   onNavigateToSchedule?: () => void;
   onSelectPatient?: (patient: Patient) => void;
+  clinicProfile?: ClinicProfile;
+  onNavigateToSettings?: () => void;
 }
 
 export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBellProps> = ({
@@ -28,6 +31,8 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
   patients = [],
   onNavigateToSchedule,
   onSelectPatient,
+  clinicProfile,
+  onNavigateToSettings,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
@@ -71,8 +76,9 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
       return (a.time || '').localeCompare(b.time || '');
     });
 
+  const isProfileIncomplete = !clinicProfile?.crn || clinicProfile.crn.trim() === '';
   const allAlertAppointments = [...todayAppointments, ...upcomingAppointments];
-  const totalCount = allAlertAppointments.length;
+  const totalCount = allAlertAppointments.length + (isProfileIncomplete ? 1 : 0);
   const hasToday = todayAppointments.length > 0;
 
   // Disparo automático de notificação nativa no navegador caso tenha permissão concedida
@@ -208,11 +214,11 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-extrabold text-xs text-white">Lembretes de Consultas</h4>
+                <h4 className="font-extrabold text-xs text-white">Central de Notificações</h4>
                 <p className="text-[10px] text-slate-300">
                   {totalCount === 0
-                    ? 'Nenhuma consulta pendente'
-                    : `${totalCount} consulta(s) na agenda`}
+                    ? 'Nenhuma pendência no momento'
+                    : `${totalCount} item(ns) para acompanhar`}
                 </p>
               </div>
             </div>
@@ -249,9 +255,48 @@ export const AppointmentsNotificationBell: React.FC<AppointmentsNotificationBell
             </div>
           )}
 
-          {/* Lista de Consultas */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 divide-y divide-slate-100 max-h-[360px] sm:max-h-[380px]">
-            {allAlertAppointments.length === 0 ? (
+          {/* Lista de Notificações / Consultas */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 max-h-[360px] sm:max-h-[380px]">
+            {/* Notificação Fixa: Cadastro Profissional / CRN */}
+            {isProfileIncomplete && (
+              <div
+                onClick={() => {
+                  if (onNavigateToSettings) {
+                    onNavigateToSettings();
+                    setIsOpen(false);
+                  }
+                }}
+                className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 hover:bg-amber-100/80 hover:border-amber-400 transition-all cursor-pointer shadow-2xs group"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Lembrete Importante</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full border border-amber-300/80">
+                    Fixa
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h5 className="font-extrabold text-xs text-slate-900 group-hover:text-amber-950 transition-colors">
+                      Complete seu CRN e Dados do Consultório
+                    </h5>
+                    <p className="text-[11px] text-slate-600 leading-snug mt-1">
+                      Adicione seu número de <strong>CRN</strong> nas configurações. Ele é fundamental para sair assinado e validado nos PDFs de dietas e prontuários.
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-amber-800 group-hover:text-amber-950">
+                      <Settings className="w-3.5 h-3.5" />
+                      <span>Ir para Configurações</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {allAlertAppointments.length === 0 && !isProfileIncomplete ? (
               <div className="py-8 text-center text-slate-400 space-y-2">
                 <Calendar className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
                 <p className="text-xs font-bold text-slate-600">Nenhuma consulta próxima</p>

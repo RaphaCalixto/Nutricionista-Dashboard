@@ -926,6 +926,8 @@ export function App() {
           patients={patients}
           onNavigateToSchedule={() => handleSelectTab('schedule')}
           onSelectPatient={handleSelectPatient}
+          clinicProfile={clinicProfile}
+          onNavigateToSettings={() => handleSelectTab('settings')}
         />
 
         {/* Dynamic Page Views */}
